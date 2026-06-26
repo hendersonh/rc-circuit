@@ -28,7 +28,7 @@ const mapLogToSlider = (value: number, vmin: number, vmax: number): number => {
 
 export const App: React.FC = () => {
   // Instantiating the PhysicsEngine in a mutable ref so it persists across renders
-  const physicsRef = useRef(new PhysicsEngine(1000, 100e-6));
+  const physicsRef = useRef(new PhysicsEngine(10000.0, 100e-6));
   const physics = physicsRef.current;
 
   // ── States ──
