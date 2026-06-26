@@ -1,0 +1,268 @@
+/* App.css */
+.app-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  backdrop-filter: blur(16px);
+  z-index: 10;
+}
+
+.sidebar h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 0%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.control-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.control-value.resistor {
+  color: var(--accent-green);
+}
+
+.control-value.capacitor {
+  color: var(--accent-cyan);
+}
+
+.control-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Readouts Info Panel */
+.readouts-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.readouts-panel h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.readout-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.readout-label {
+  color: var(--text-secondary);
+}
+
+.readout-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+.readout-value.vc {
+  color: var(--accent-cyan);
+}
+
+.readout-value.current {
+  color: var(--accent-green);
+}
+
+.readout-value.tau {
+  color: var(--accent-orange);
+}
+
+.readout-value.energy {
+  color: var(--accent-battery);
+}
+
+/* Split Ratio Bar */
+.ratio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ratio-bar-wrapper {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ratio-bar-segment {
+  height: 100%;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ratio-bar-segment.cap {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+}
+
+.ratio-bar-segment.res {
+  background: #64748b;
+}
+
+.ratio-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Main Visualiser Area */
+.main-display {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* Schematic Area */
+.schematic-pane {
+  height: 38%;
+  background: radial-gradient(circle at center, #161a24 0%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.schematic-svg-wrapper {
+  width: 100%;
+  height: 100%;
+  max-width: 800px;
+  max-height: 280px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Graph Area */
+.graph-pane {
+  flex-grow: 1;
+  background-color: #0c0e12;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 62%;
+}
+
+.chart-wrapper {
+  position: relative;
+  flex-grow: 1;
+  width: 100%;
+  height: calc(100% - 20px);
+}
+
+/* Floating custom tooltip/readout styles */
+.cursor-tooltip {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 22, 31, 0.95);
+  border: 1px solid var(--accent-orange);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba(245, 158, 11, 0.2);
+  z-index: 100;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.tooltip-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tooltip-label {
+  color: var(--text-secondary);
+}
+
+.tooltip-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tooltip-value.time {
+  color: #fff;
+}
+.tooltip-value.vc {
+  color: var(--accent-cyan);
+}
+.tooltip-value.current {
+  color: var(--accent-green);
+}
+.tooltip-value.ec {
+  color: var(--accent-cyan);
+}
+.tooltip-value.er {
+  color: #a7f3d0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -5px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
