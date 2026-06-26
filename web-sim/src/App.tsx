@@ -59,7 +59,7 @@ export const App: React.FC = () => {
   const rSliderVal = mapLogToSlider(resistance, 100.0, 100000.0);
   const cSliderVal = mapLogToSlider(capacitance, 10e-6, 4700e-6);
 
-  const lastAppendTimeRef = useRef<number>(0);
+  const stepIndexRef = useRef<number>(0);
 
   // ── Simulation Frame Loop ──
   useEffect(() => {
@@ -71,65 +71,119 @@ export const App: React.FC = () => {
       lastTime = now;
 
       if (!isPaused) {
-        // Advance physics equations
-        if (isCharging) {
-          physics.update_charge(dt);
-        } else {
-          physics.update_discharge(dt);
-        }
+        const tau = physics.tau;
+        const maxSimTime = 10 * tau;
+        const stepSize = maxSimTime / 300;
 
-        const currentVC = physics.VC;
-        const currentI = isCharging ? physics.current : physics.discharge_current;
-        const currentVR = currentI * resistance;
+        if (physics.elapsed_time < maxSimTime) {
+          const clampedDt = Math.min(dt, 0.1);
+          const targetTime = Math.min(physics.elapsed_time + clampedDt, maxSimTime);
 
-        // Sync values to UI states
-        setVc(currentVC);
-        const currentElapsed = physics.elapsed_time;
-        setSimTime(currentElapsed);
-        setEnergyBattery(physics.energy_battery);
-        setEnergyResistor(physics.energy_resistor);
-        setEnergyCapacitor(physics.energy_capacitor);
+          const pointsToAppend: SimBuffers = {
+            times: [],
+            vcData: [],
+            vrData: [],
+            iData: [],
+            ecData: [],
+            erData: [],
+            ebattData: []
+          };
 
-        // Auto-pause if the simulation reaches 10 Time Constants (10 tau)
-        if (currentElapsed >= 10 * physics.tau) {
-          setIsPaused(true);
-        }
+          const appendPoint = (t: number) => {
+            const currentVC = physics.VC;
+            const currentI = isCharging ? physics.current : physics.discharge_current;
+            const currentVR = currentI * resistance;
 
-        // Update scrolling graph buffers at a fixed rate (~30 Hz or every 33ms of simulation time)
-        // to guarantee that the 300-point buffer represents a full 10-second window.
-        if (currentElapsed - lastAppendTimeRef.current >= 0.033 || currentElapsed < lastAppendTimeRef.current) {
-          lastAppendTimeRef.current = currentElapsed;
+            pointsToAppend.times.push(t);
+            pointsToAppend.vcData.push(currentVC);
+            pointsToAppend.vrData.push(currentVR);
+            pointsToAppend.iData.push(currentI * 1000.0);
+            pointsToAppend.ecData.push(physics.energy_capacitor * 1000.0);
+            pointsToAppend.erData.push(physics.energy_resistor * 1000.0);
+            pointsToAppend.ebattData.push(physics.energy_battery * 1000.0);
+          };
 
-          setBuffers((prev) => {
-            const nextTimes = [...prev.times, currentElapsed];
-            const nextVc = [...prev.vcData, currentVC];
-            const nextVr = [...prev.vrData, currentVR];
-            const nextI = [...prev.iData, currentI * 1000.0]; // in mA
-            const nextEc = [...prev.ecData, physics.energy_capacitor * 1000.0]; // in mJ
-            const nextEr = [...prev.erData, physics.energy_resistor * 1000.0]; // in mJ
-            const nextEbatt = [...prev.ebattData, physics.energy_battery * 1000.0]; // in mJ
+          // If stepIndex is 0, append the initial t = 0 point
+          if (stepIndexRef.current === 0) {
+            appendPoint(0);
+            stepIndexRef.current = 1;
+          }
 
-            // Limit length to 300 points
-            if (nextTimes.length > 300) {
-              nextTimes.shift();
-              nextVc.shift();
-              nextVr.shift();
-              nextI.shift();
-              nextEc.shift();
-              nextEr.shift();
-              nextEbatt.shift();
+          // Advance physics to targetTime, appending points at multiples of stepSize
+          while (physics.elapsed_time < targetTime) {
+            const nextStepTime = stepIndexRef.current * stepSize;
+            if (targetTime >= nextStepTime) {
+              const dtStep = Math.max(0, nextStepTime - physics.elapsed_time);
+              if (dtStep > 0) {
+                if (isCharging) {
+                  physics.update_charge(dtStep);
+                } else {
+                  physics.update_discharge(dtStep);
+                }
+              }
+              appendPoint(nextStepTime);
+              stepIndexRef.current += 1;
+            } else {
+              const dtStep = Math.max(0, targetTime - physics.elapsed_time);
+              if (dtStep > 0) {
+                if (isCharging) {
+                  physics.update_charge(dtStep);
+                } else {
+                  physics.update_discharge(dtStep);
+                }
+              }
+              break;
             }
+          }
 
-            return {
-              times: nextTimes,
-              vcData: nextVc,
-              vrData: nextVr,
-              iData: nextI,
-              ecData: nextEc,
-              erData: nextEr,
-              ebattData: nextEbatt,
-            };
-          });
+          // Set latest readouts
+          setVc(physics.VC);
+          setSimTime(physics.elapsed_time);
+          setEnergyBattery(physics.energy_battery);
+          setEnergyResistor(physics.energy_resistor);
+          setEnergyCapacitor(physics.energy_capacitor);
+
+          // Append any collected points to buffer
+          if (pointsToAppend.times.length > 0) {
+            setBuffers((prev) => {
+              const nextTimes = [...prev.times, ...pointsToAppend.times];
+              const nextVc = [...prev.vcData, ...pointsToAppend.vcData];
+              const nextVr = [...prev.vrData, ...pointsToAppend.vrData];
+              const nextI = [...prev.iData, ...pointsToAppend.iData];
+              const nextEc = [...prev.ecData, ...pointsToAppend.ecData];
+              const nextEr = [...prev.erData, ...pointsToAppend.erData];
+              const nextEbatt = [...prev.ebattData, ...pointsToAppend.ebattData];
+
+              // Buffer cap has room for 301 points
+              if (nextTimes.length > 350) {
+                const diff = nextTimes.length - 350;
+                nextTimes.splice(0, diff);
+                nextVc.splice(0, diff);
+                nextVr.splice(0, diff);
+                nextI.splice(0, diff);
+                nextEc.splice(0, diff);
+                nextEr.splice(0, diff);
+                nextEbatt.splice(0, diff);
+              }
+
+              return {
+                times: nextTimes,
+                vcData: nextVc,
+                vrData: nextVr,
+                iData: nextI,
+                ecData: nextEc,
+                erData: nextEr,
+                ebattData: nextEbatt
+              };
+            });
+          }
+
+          // Auto-pause if we reached maxSimTime
+          if (physics.elapsed_time >= maxSimTime) {
+            setIsPaused(true);
+          }
+        } else {
+          setIsPaused(true);
         }
       }
 
@@ -170,7 +224,7 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     physics.reset();
-    lastAppendTimeRef.current = 0;
+    stepIndexRef.current = 0;
     setVc(0);
     setSimTime(0);
     setEnergyBattery(0);
@@ -391,6 +445,7 @@ export const App: React.FC = () => {
             isCharging={isCharging}
             onPauseSim={() => setIsPaused(true)}
             resistance={resistance}
+            capacitance={capacitance}
           />
         </section>
       </main>

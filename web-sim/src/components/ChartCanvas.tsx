@@ -25,6 +25,7 @@ interface ChartCanvasProps {
   isCharging: boolean;
   onPauseSim: () => void;
   resistance: number;
+  capacitance: number;
 }
 
 // Custom plugin to draw vertical cursor line on active index
@@ -65,6 +66,7 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   isCharging,
   onPauseSim,
   resistance,
+  capacitance,
 }) => {
   const chartRef = useRef<ChartJS<'line'> | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -117,10 +119,10 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   const currentMaxMA = (v0 / resistance) * 1000 * 1.2;
   const currentLimitMA = Math.max(currentMaxMA, 1.0);
 
-  // Set X-axis window limits: show last 10s of simulation
-  const lastTime = times.length > 0 ? times[times.length - 1] : 0;
-  const xMin = Math.max(0, lastTime - 10.0);
-  const xMax = Math.max(10.0, lastTime);
+  // Set X-axis window limits: span exactly from 0 to 10 * tau
+  const tau = resistance * capacitance;
+  const xMin = 0;
+  const xMax = Math.max(10.0 * tau, 0.01);
 
   const chartOptions = {
     responsive: true,
