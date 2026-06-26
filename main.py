@@ -4,7 +4,6 @@ Replaces the original pygame-based implementation.
 """
 
 import sys
-import math
 from collections import deque
 
 import matplotlib
@@ -284,64 +283,94 @@ class CircuitSimWindow(QMainWindow):
 
     def _redraw_circuit(self):
         """Redraw the schemdraw circuit on ax_schem.
+
         Called only when mode, R, or C changes — not per frame.
         """
         self.ax_schem.clear()
         self.ax_schem.axis('off')
         self.ax_schem.set_aspect('equal')
 
-        d = schemdraw.Drawing(fontsize=10)
+        # ── Rectangular loop (schemdraw) ──
+        d = schemdraw.Drawing(fontsize=12)
 
-        # Build series RC circuit loop
-        d.add(elm.Battery().up().label('V₀', color='red'))
-        d.add(elm.Line().right())
-        d.add(elm.ResistorIEC().right().label('R'))
-        d.add(elm.Line().right())
+        # Left branch: Battery
+        d.add(elm.Battery().up().at((0, 0)).color('#ffffff'))
+        d.add(elm.Label().at((-0.7, 1.5)).label('12.0 V', halign='right', valign='center', color='#ffffff'))
 
+        # Top-left wire: from battery top (0,3) to terminal 'a' (3,3)
+        d.add(elm.Line().right().at((0, 3)).to((3, 3)).color('#ffffff'))
+
+        # Dot and label at terminal 'a'
+        d.add(elm.Dot().at((3, 3)).color('#cccccc'))
+        d.add(elm.Label().at((3.0, 3.25)).label('a', halign='center', valign='center', color='#cccccc', fontsize=9))
+
+        # Dot and label at terminal 'b'
+        d.add(elm.Dot().at((4.5, 1.5)).color('#cccccc'))
+        d.add(elm.Label().at((4.2, 1.5)).label('b', halign='center', valign='center', color='#cccccc', fontsize=9))
+
+        # Vertical stub for 'b' from bottom return wire (4.5, 0) to (4.5, 1.5)
+        d.add(elm.Line().up().at((4.5, 0)).to((4.5, 1.5)).color('#888888'))
+
+        # Dot at switch pivot (6,3)
+        d.add(elm.Dot().at((6, 3)).color('#ffbb33'))
+
+        # Draw switch arm based on state
         if self.is_charging:
-            d.add(elm.SwitchSpdt().label('CHG', color='orange'))
+            d.add(elm.Line().at((6, 3)).to((3, 3)).color('#ffbb33').linewidth(2.5))
         else:
-            d.add(elm.SwitchSpdt(action='close').label('DCH', color='green'))
+            d.add(elm.Line().at((6, 3)).to((4.5, 1.5)).color('#ffbb33').linewidth(2.5))
 
-        d.add(elm.Line().right())
-        d.add(elm.Capacitor().down().label('C'))
-        d.add(elm.Line().left())
-        d.add(elm.Line().left())
-        d.add(elm.Line().left())
-        d.add(elm.Line().left())
-        d.add(elm.Line().left())
+        # Resistor starting at pivot (6,3) to (9,3)
+        d.add(elm.ResistorIEC().right().at((6, 3)).label('R', loc='top', color='#00dc00').color('#00dc00'))
 
+        # Wire from Resistor to Capacitor top (9,3) to (12,3)
+        d.add(elm.Line().right().at((9, 3)).to((12, 3)).color('#ffffff'))
+
+        # Capacitor going down from (12,3) to (12,0)
+        d.add(elm.Capacitor().down().at((12, 3)).label('C', loc='left', color='#00ffff').color('#00ffff'))
+
+        # Bottom wire returning from (12,0) to (0,0)
+        d.add(elm.Line().left().at((12, 0)).to((0, 0)).color('#ffffff'))
+
+        # Draw drawing elements to the canvas
         d.draw(canvas=self.ax_schem, show=False)
 
-        # ── Canvas text markers (updated per tick via set_text) ──
+        # Set axes limit with margins to prevent cut-offs
+        self.ax_schem.set_xlim(-1.5, 14.5)
+        self.ax_schem.set_ylim(-0.8, 4.2)
+
+        # ── Dynamic text markers — created AFTER ax.clear(), stored for
+        #     per-tick updates via set_text() in _tick(). ──
         r_val = self.physics.R
         c_val = self.physics.C
         tau = self.physics.tau
         vc = self.physics.VC
 
+        # Get initial current
+        current = (self.physics.current if self.is_charging
+                   else self.physics.discharge_current)
+
         self._canvas_texts = {
             'vc': self.ax_schem.text(
-                0.65, 0.25, f"Vc = {vc:.2f} V",
-                transform=self.ax_schem.transAxes,
+                12.8, 1.5, f"Vc = {vc:.2f} V",
                 color='#00ffff', fontsize=11, fontweight='bold',
-                verticalalignment='bottom',
+                ha='left', va='center',
             ),
             'i': self.ax_schem.text(
-                0.25, 0.85, "I = 0.00 mA",
-                transform=self.ax_schem.transAxes,
+                7.5, 2.1, f"I = {current*1000:.2f} mA",
                 color='#00dc00', fontsize=11, fontweight='bold',
-                verticalalignment='bottom',
+                ha='center', va='center',
             ),
             'params': self.ax_schem.text(
-                0.05, 0.05,
+                6.0, -0.5,
                 f"R={r_val:.0f}Ω  C={c_val*1e6:.0f}µF  τ={tau:.3f}s",
-                transform=self.ax_schem.transAxes,
                 color='#888888', fontsize=9,
-                verticalalignment='bottom',
+                ha='center', va='center',
             ),
         }
 
         self.canvas.draw_idle()
+
 
     # ──────────────────────────────────────────
     # Simulation Tick
@@ -381,7 +410,7 @@ class CircuitSimWindow(QMainWindow):
         # Update canvas text markers via set_text (no redraw)
         if hasattr(self, '_canvas_texts'):
             self._canvas_texts['vc'].set_text(f"Vc = {self.physics.VC:.2f} V")
-            self._canvas_texts['i'].set_text(f"I  = {current*1000:.2f} mA")
+            self._canvas_texts['i'].set_text(f"I = {current*1000:.2f} mA")
 
     # ──────────────────────────────────────────
     # Graph Update
@@ -396,10 +425,17 @@ class CircuitSimWindow(QMainWindow):
         self.vc_line.set_data(t, list(self.vc_data))
         self.i_line.set_data(t, list(self.i_data))
 
+        # Vc — autoscale normally (0 → V₀ range is well-behaved)
         self.ax_graph.relim()
         self.ax_graph.autoscale_view()
-        self.ax_i.relim()
-        self.ax_i.autoscale_view()
+
+        # Current — scale axis to actual R so the exponential decay is
+        # clearly visible.  I_max = V₀ / R, with 20% headroom and a
+        # floor of ±1 mA so the axes remain readable at high R values.
+        v0 = 12.0
+        i_scale = (v0 / self.physics.R) * 1000 * 1.2   # mA, 20% margin
+        i_scale = max(i_scale, 1.0)                      # minimum ±1 mA
+        self.ax_i.set_ylim(-i_scale, i_scale)
 
         # Scroll window: show last 10s of data
         window = 10.0

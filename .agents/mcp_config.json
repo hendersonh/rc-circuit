@@ -1,0 +1,14 @@
+// setup mcp server in  ~/.gemini\ag-kit\mcp_config.json
+{
+    "mcpServers": {
+        "context7": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@upstash/context7-mcp",
+                "--api-key",
+                "ctx7sk-3f861770-08ca-4f61-b44e-9cc4c84f33c5"
+            ]
+        }
+    }
+}

@@ -1,0 +1,6 @@
+# ruff.toml
+extend-exclude = [
+    ".agents",
+    ".venv",
+    "__pycache__"
+]
