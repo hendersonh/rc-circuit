@@ -27,6 +27,8 @@ class PhysicsEngine:
         self._c = max(c, self.MIN_C)
         self._vc = 0.0
         self._elapsed = 0.0
+        self.energy_battery = 0.0
+        self.energy_resistor = 0.0
 
     @property
     def R(self) -> float:
@@ -47,6 +49,11 @@ class PhysicsEngine:
     @property
     def VC(self) -> float:
         return self._vc
+
+    @property
+    def energy_capacitor(self) -> float:
+        """Energy stored in the capacitor: E = 0.5 * C * VC^2 (Joules)."""
+        return 0.5 * self._c * (self._vc ** 2)
 
     @property
     def tau(self) -> float:
@@ -71,24 +78,42 @@ class PhysicsEngine:
         return -self._vc / self._r
 
     def update_charge(self, dt: float):
-        """Advance simulation in charging mode.
-        Vc(t+dt) = Vc(t) + (V0 - Vc(t)) * (1 - e^(-dt/τ))
-        """
+        """Advance simulation in charging mode."""
         dt = min(dt, self.MAX_DT)
         if self.tau > 0:
-            self._vc += (self.V0 - self._vc) * (1 - math.exp(-dt / self.tau))
+            exp_dt = math.exp(-dt / self.tau)
+            exp_2dt = math.exp(-2.0 * dt / self.tau)
+
+            d_energy_batt = self._c * self.V0 * (self.V0 - self._vc) * (1.0 - exp_dt)
+            d_energy_res = 0.5 * self._c * ((self.V0 - self._vc) ** 2) * (1.0 - exp_2dt)
+
+            self.energy_battery += d_energy_batt
+            self.energy_resistor += d_energy_res
+
+            self._vc += (self.V0 - self._vc) * (1.0 - exp_dt)
         self._elapsed += dt
 
     def update_discharge(self, dt: float):
-        """Advance simulation in discharging mode.
-        Vc(t+dt) = Vc(t) * e^(-dt/τ)
-        """
+        """Advance simulation in discharging mode."""
         dt = min(dt, self.MAX_DT)
         if self.tau > 0:
-            self._vc *= math.exp(-dt / self.tau)
+            exp_dt = math.exp(-dt / self.tau)
+            exp_2dt = math.exp(-2.0 * dt / self.tau)
+
+            d_energy_res = 0.5 * self._c * (self._vc ** 2) * (1.0 - exp_2dt)
+
+            self.energy_resistor += d_energy_res
+
+            self._vc *= exp_dt
         self._elapsed += dt
 
+    def reset_energy(self):
+        """Reset accumulated energy values to zero."""
+        self.energy_battery = 0.0
+        self.energy_resistor = 0.0
+
     def reset(self):
-        """Reset capacitor voltage and elapsed time to zero."""
+        """Reset capacitor voltage, elapsed time, and energy to zero."""
         self._vc = 0.0
         self._elapsed = 0.0
+        self.reset_energy()

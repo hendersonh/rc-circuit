@@ -87,6 +87,46 @@ def test_reset():
     assert eng.elapsed_time == 0.0
 
 
+def test_energy_conservation():
+    """Verify that E_battery = E_capacitor + E_resistor, and that it splits 50/50 during a full charge."""
+    eng = PhysicsEngine(r=1000, c=100e-6)  # C = 100 µF, V0 = 12V
+    # Total supplied energy at full charge should be C * V0^2 = 100e-6 * 144 = 0.0144 J (14.4 mJ)
+    # Stored energy should be 0.5 * C * V0^2 = 7.2 mJ
+    # Dissipated energy should be 0.5 * C * V0^2 = 7.2 mJ
+
+    assert eng.energy_battery == 0.0
+    assert eng.energy_resistor == 0.0
+    assert eng.energy_capacitor == 0.0
+
+    # Charge to steady state (10 tau)
+    dt = 0.01
+    for _ in range(1000):
+        eng.update_charge(dt)
+
+    assert abs(eng.VC - eng.V0) < 0.001
+    assert abs(eng.energy_battery - 0.0144) < 1e-4
+    assert abs(eng.energy_capacitor - 0.0072) < 1e-4
+    assert abs(eng.energy_resistor - 0.0072) < 1e-4
+
+    # Conservation check (to high precision)
+    diff = abs(eng.energy_battery - (eng.energy_capacitor + eng.energy_resistor))
+    assert diff < DELTA
+
+    # Discharge test
+    eng.reset_energy()
+    eng._vc = eng.V0  # fully charged, Ec = 7.2 mJ
+    assert abs(eng.energy_capacitor - 0.0072) < DELTA
+
+    # Discharge fully
+    for _ in range(1000):
+        eng.update_discharge(dt)
+
+    assert eng.VC < 0.001
+    assert eng.energy_battery == 0.0
+    assert abs(eng.energy_resistor - 0.0072) < 1e-4
+    assert abs(eng.energy_capacitor) < 1e-6
+
+
 if __name__ == "__main__":
     test_initial_state()
     test_clamping()
@@ -97,4 +137,5 @@ if __name__ == "__main__":
     test_current_charge()
     test_current_discharge()
     test_reset()
+    test_energy_conservation()
     print("All PhysicsEngine tests passed!")

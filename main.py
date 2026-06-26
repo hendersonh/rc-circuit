@@ -16,7 +16,7 @@ from PySide6.QtCore import QElapsedTimer, QTimer, Qt
 from PySide6.QtGui import QFont, QPalette, QColor
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QSlider, QLabel, QPushButton, QRadioButton, QButtonGroup,
+    QSlider, QLabel, QPushButton, QRadioButton, QButtonGroup, QFrame,
 )
 
 import schemdraw
@@ -48,6 +48,15 @@ class CircuitSimWindow(QMainWindow):
         self.times = deque(maxlen=buffer_size)
         self.vc_data = deque(maxlen=buffer_size)
         self.i_data = deque(maxlen=buffer_size)
+        self.ec_data = deque(maxlen=buffer_size)
+        self.er_data = deque(maxlen=buffer_size)
+        self.ebatt_data = deque(maxlen=buffer_size)
+
+        # ── Cursor state ──
+        self.cursor_active = False
+        self.dragging_cursor = False
+        self.cursor_line = None
+        self.cursor_text = None
 
         # ── Build UI ──
         self._build_ui()
@@ -172,6 +181,47 @@ class CircuitSimWindow(QMainWindow):
         self.info_t.setStyleSheet("color: #ffffff;")
         left_layout.addWidget(self.info_t)
 
+        # Energy balance layout
+        left_layout.addSpacing(15)
+        lbl_energy = QLabel("Energy Balance")
+        lbl_energy.setStyleSheet("color: #cccccc; font-weight: bold;")
+        left_layout.addWidget(lbl_energy)
+
+        self.info_ebatt = QLabel("E_batt =  0.00 mJ")
+        self.info_ebatt.setFont(font_mono)
+        self.info_ebatt.setStyleSheet("color: #dddddd;")
+        left_layout.addWidget(self.info_ebatt)
+
+        self.info_ecap = QLabel("E_cap  =  0.00 mJ")
+        self.info_ecap.setFont(font_mono)
+        self.info_ecap.setStyleSheet("color: #00ffff;")
+        left_layout.addWidget(self.info_ecap)
+
+        self.info_eres = QLabel("E_res  =  0.00 mJ")
+        self.info_eres.setFont(font_mono)
+        self.info_eres.setStyleSheet("color: #888888;")
+        left_layout.addWidget(self.info_eres)
+
+        # Dynamic Split Ratio Bar
+        self.ratio_container = QWidget()
+        self.ratio_container.setFixedHeight(12)
+        self.ratio_container.setStyleSheet("border-radius: 3px; background-color: #2b2b30;")
+        ratio_layout = QHBoxLayout(self.ratio_container)
+        ratio_layout.setContentsMargins(0, 0, 0, 0)
+        ratio_layout.setSpacing(0)
+
+        self.ratio_cap = QFrame()
+        self.ratio_cap.setStyleSheet("background-color: #00ffff; border-radius: 2px;")
+        self.ratio_res = QFrame()
+        self.ratio_res.setStyleSheet("background-color: #888888; border-radius: 2px;")
+
+        self.ratio_cap.setMinimumWidth(0)
+        self.ratio_res.setMinimumWidth(0)
+
+        ratio_layout.addWidget(self.ratio_cap, 50)
+        ratio_layout.addWidget(self.ratio_res, 50)
+        left_layout.addWidget(self.ratio_container)
+
         left_layout.addStretch()
 
         # ── Right panel — matplotlib figure ──
@@ -212,6 +262,11 @@ class CircuitSimWindow(QMainWindow):
 
         # Matplotlib canvas
         self.canvas = FigureCanvas(self.fig)
+
+        # Connect mouse events for draggable cursor
+        self.canvas.mpl_connect('button_press_event', self._on_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self._on_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self._on_mouse_release)
 
         # ── Assemble ──
         hbox.addWidget(left)
@@ -258,6 +313,7 @@ class CircuitSimWindow(QMainWindow):
 
     def _on_mode_changed(self):
         self.is_charging = self.radio_charge.isChecked()
+        self.physics.reset_energy()
         self._redraw_circuit()
 
     def _on_play_pause(self):
@@ -267,6 +323,14 @@ class CircuitSimWindow(QMainWindow):
         else:
             self.play_btn.setText("⏸ Pause")
             self.elapsed_timer.start()
+            # Clear cursor on resume
+            if self.cursor_line is not None:
+                self.cursor_line.remove()
+                self.cursor_line = None
+            if self.cursor_text is not None:
+                self.cursor_text.remove()
+                self.cursor_text = None
+            self.cursor_active = False
 
     def _on_reset(self):
         self.physics.reset()
@@ -274,6 +338,17 @@ class CircuitSimWindow(QMainWindow):
         self.times.clear()
         self.vc_data.clear()
         self.i_data.clear()
+        self.ec_data.clear()
+        self.er_data.clear()
+        self.ebatt_data.clear()
+        # Remove cursor elements
+        if self.cursor_line is not None:
+            self.cursor_line.remove()
+            self.cursor_line = None
+        if self.cursor_text is not None:
+            self.cursor_text.remove()
+            self.cursor_text = None
+        self.cursor_active = False
         self._update_graph()
         self._update_info()
 
@@ -400,6 +475,9 @@ class CircuitSimWindow(QMainWindow):
         self.times.append(self._sim_time)
         self.vc_data.append(self.physics.VC)
         self.i_data.append(current * 1000.0)
+        self.ec_data.append(self.physics.energy_capacitor * 1000.0)
+        self.er_data.append(self.physics.energy_resistor * 1000.0)
+        self.ebatt_data.append(self.physics.energy_battery * 1000.0)
 
         # Update graph
         self._update_graph()
@@ -456,6 +534,95 @@ class CircuitSimWindow(QMainWindow):
         self.info_i.setText(f"I  = {current*1000:6.2f} mA")
         self.info_tau.setText(f"τ  = {self.physics.tau:6.3f} s")
         self.info_t.setText(f"t  = {self._sim_time:6.1f} s")
+
+        # Convert Joules to millijoules (mJ)
+        e_batt = self.physics.energy_battery * 1000.0
+        e_cap = self.physics.energy_capacitor * 1000.0
+        e_res = self.physics.energy_resistor * 1000.0
+
+        self.info_ebatt.setText(f"E_batt = {e_batt:6.2f} mJ")
+        self.info_ecap.setText(f"E_cap  = {e_cap:6.2f} mJ")
+        self.info_eres.setText(f"E_res  = {e_res:6.2f} mJ")
+
+        # Update ratio bar weights
+        total = e_cap + e_res
+        if total > 1e-9:
+            pct_cap = e_cap / total
+            pct_res = e_res / total
+        else:
+            pct_cap = 0.5 if self.is_charging else 1.0
+            pct_res = 0.5 if self.is_charging else 0.0
+
+        ratio_layout = self.ratio_container.layout()
+        ratio_layout.setStretch(0, int(pct_cap * 100))
+        ratio_layout.setStretch(1, int(pct_res * 100))
+
+    # ──────────────────────────────────────────
+    # Interactive Graph Cursor Logic
+    # ──────────────────────────────────────────
+
+    def _draw_cursor(self, t_pos):
+        if not self.times:
+            return
+
+        # Find nearest index in times deque
+        times_list = list(self.times)
+        idx = min(range(len(times_list)), key=lambda i: abs(times_list[i] - t_pos))
+        t_val = times_list[idx]
+        vc_val = self.vc_data[idx]
+        i_val = self.i_data[idx]
+        ec_val = self.ec_data[idx]
+        er_val = self.er_data[idx]
+
+        # Readout text formatting
+        text_str = f"t={t_val:.2f}s\nVc={vc_val:.2f}V\nI={i_val:.2f}mA\nEc={ec_val:.2f}mJ\nEr={er_val:.2f}mJ"
+
+        # Update or create vertical line on self.ax_graph
+        if self.cursor_line is None:
+            self.cursor_line = self.ax_graph.axvline(
+                x=t_val, color='#ffbb33', linestyle='--', linewidth=1.5, zorder=5
+            )
+        else:
+            self.cursor_line.set_xdata([t_val, t_val])
+
+        # Update or create floating text box using xaxis transform (above the chart)
+        if self.cursor_text is None:
+            self.cursor_text = self.ax_graph.text(
+                t_val, 1.02, text_str,
+                transform=self.ax_graph.get_xaxis_transform(),
+                color='#ffbb33', fontsize=9, fontweight='bold',
+                ha='center', va='bottom', zorder=6,
+                clip_on=False,
+                bbox=dict(facecolor='#1e1e23', alpha=0.9, edgecolor='#ffbb33', boxstyle='round,pad=0.3')
+            )
+        else:
+            self.cursor_text.set_position((t_val, 1.02))
+            self.cursor_text.set_text(text_str)
+
+        self.canvas.draw_idle()
+
+    def _on_mouse_press(self, event):
+        if event.inaxes not in [self.ax_graph, self.ax_i]:
+            return
+
+        # Automatically pause the simulation on click/drag
+        if not self.paused:
+            self._on_play_pause()
+
+        self.dragging_cursor = True
+        self.cursor_active = True
+        self._draw_cursor(event.xdata)
+
+    def _on_mouse_move(self, event):
+        if not self.dragging_cursor:
+            return
+        if event.inaxes not in [self.ax_graph, self.ax_i]:
+            return
+
+        self._draw_cursor(event.xdata)
+
+    def _on_mouse_release(self, event):
+        self.dragging_cursor = False
 
     # ──────────────────────────────────────────
     # Cleanup
