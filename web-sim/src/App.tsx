@@ -214,6 +214,10 @@ export const App: React.FC = () => {
     physics.reset_energy();
     setEnergyBattery(0);
     setEnergyResistor(0);
+    // If the simulation is at the start (t = 0), set appropriate initial voltage
+    if (physics.elapsed_time === 0) {
+      physics.VC = charging ? 0.0 : 12.0;
+    }
     // When switching mode, sync immediately
     setVc(physics.VC);
   };
@@ -224,12 +228,16 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     physics.reset();
+    // If in discharge mode, set initial voltage to 12.0 V
+    if (!isCharging) {
+      physics.VC = 12.0;
+    }
     stepIndexRef.current = 0;
-    setVc(0);
+    setVc(physics.VC);
     setSimTime(0);
     setEnergyBattery(0);
     setEnergyResistor(0);
-    setEnergyCapacitor(0);
+    setEnergyCapacitor(physics.energy_capacitor);
     setBuffers({
       times: [],
       vcData: [],
