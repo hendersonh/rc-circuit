@@ -8,6 +8,7 @@ import './App.css';
 interface SimBuffers {
   times: number[];
   vcData: number[];
+  vrData: number[];
   iData: number[];
   ecData: number[];
   erData: number[];
@@ -47,6 +48,7 @@ export const App: React.FC = () => {
   const [buffers, setBuffers] = useState<SimBuffers>({
     times: [],
     vcData: [],
+    vrData: [],
     iData: [],
     ecData: [],
     erData: [],
@@ -78,6 +80,7 @@ export const App: React.FC = () => {
 
         const currentVC = physics.VC;
         const currentI = isCharging ? physics.current : physics.discharge_current;
+        const currentVR = currentI * resistance;
 
         // Sync values to UI states
         setVc(currentVC);
@@ -95,6 +98,7 @@ export const App: React.FC = () => {
           setBuffers((prev) => {
             const nextTimes = [...prev.times, currentElapsed];
             const nextVc = [...prev.vcData, currentVC];
+            const nextVr = [...prev.vrData, currentVR];
             const nextI = [...prev.iData, currentI * 1000.0]; // in mA
             const nextEc = [...prev.ecData, physics.energy_capacitor * 1000.0]; // in mJ
             const nextEr = [...prev.erData, physics.energy_resistor * 1000.0]; // in mJ
@@ -104,6 +108,7 @@ export const App: React.FC = () => {
             if (nextTimes.length > 300) {
               nextTimes.shift();
               nextVc.shift();
+              nextVr.shift();
               nextI.shift();
               nextEc.shift();
               nextEr.shift();
@@ -113,6 +118,7 @@ export const App: React.FC = () => {
             return {
               times: nextTimes,
               vcData: nextVc,
+              vrData: nextVr,
               iData: nextI,
               ecData: nextEc,
               erData: nextEr,
@@ -127,7 +133,7 @@ export const App: React.FC = () => {
 
     animationFrameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused, isCharging, physics]);
+  }, [isPaused, isCharging, physics, resistance]);
 
   // ── Event Handlers ──
   const handleRChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,6 +174,7 @@ export const App: React.FC = () => {
     setBuffers({
       times: [],
       vcData: [],
+      vrData: [],
       iData: [],
       ecData: [],
       erData: [],
@@ -198,6 +205,7 @@ export const App: React.FC = () => {
 
   // Current value in mA for readouts
   const currentMA = (isCharging ? physics.current : physics.discharge_current) * 1000;
+  const vr = (currentMA / 1000) * resistance;
 
   return (
     <div className="app-container">
@@ -286,6 +294,13 @@ export const App: React.FC = () => {
             <span className="readout-label">Vc (Capacitor)</span>
             <span className="readout-value vc">{vc.toFixed(2)} V</span>
           </div>
+
+          <div className="readout-row">
+            <span className="readout-label">Vr (Resistor)</span>
+            <span className="readout-value current" style={{ color: 'var(--accent-green)' }}>
+              {vr.toFixed(2)} V
+            </span>
+          </div>
           
           <div className="readout-row">
             <span className="readout-label">I (Loop Current)</span>
@@ -353,6 +368,7 @@ export const App: React.FC = () => {
             capacitance={capacitance}
             tau={physics.tau}
             vc={vc}
+            vr={vr}
             current={isCharging ? physics.current : physics.discharge_current}
           />
         </section>
@@ -362,10 +378,12 @@ export const App: React.FC = () => {
           <ChartCanvas
             times={buffers.times}
             vcData={buffers.vcData}
+            vrData={buffers.vrData}
             iData={buffers.iData}
             ecData={buffers.ecData}
             erData={buffers.erData}
             isPaused={isPaused}
+            isCharging={isCharging}
             onPauseSim={() => setIsPaused(true)}
             resistance={resistance}
           />

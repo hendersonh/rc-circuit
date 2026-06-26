@@ -17,10 +17,12 @@ ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 interface ChartCanvasProps {
   times: number[];
   vcData: number[];
+  vrData: number[];
   iData: number[];
   ecData: number[];
   erData: number[];
   isPaused: boolean;
+  isCharging: boolean;
   onPauseSim: () => void;
   resistance: number;
 }
@@ -55,10 +57,12 @@ ChartJS.register(verticalCursorPlugin);
 export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   times,
   vcData,
+  vrData,
   iData,
   ecData,
   erData,
   isPaused,
+  isCharging,
   onPauseSim,
   resistance,
 }) => {
@@ -77,10 +81,20 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   const chartData = {
     datasets: [
       {
-        label: 'Vc (Voltage)',
+        label: 'Vc (Capacitor)',
         data: times.map((t, idx) => ({ x: t, y: vcData[idx] })),
         borderColor: '#06b6d4', // Cyan
         borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Vr (Resistor)',
+        data: times.map((t, idx) => ({ x: t, y: vrData[idx] })),
+        borderColor: '#10b981', // Emerald Green (Dashed)
+        borderWidth: 2,
+        borderDash: [6, 4],
         pointRadius: 0,
         pointHoverRadius: 0,
         yAxisID: 'y',
@@ -147,7 +161,7 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
       y: {
         type: 'linear',
         position: 'left',
-        min: 0,
+        min: isCharging ? 0 : -13.0,
         max: 13.0,
         grid: {
           color: 'rgba(255, 255, 255, 0.05)',
@@ -285,6 +299,10 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
         <div className="tooltip-col">
           <span className="tooltip-label">Vc:</span>
           <span className="tooltip-value vc">{vcData[activeIndex].toFixed(2)}V</span>
+        </div>
+        <div className="tooltip-col">
+          <span className="tooltip-label">Vr:</span>
+          <span className="tooltip-value current" style={{ color: 'var(--accent-green)' }}>{vrData[activeIndex].toFixed(2)}V</span>
         </div>
         <div className="tooltip-col">
           <span className="tooltip-label">Current:</span>

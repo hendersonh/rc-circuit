@@ -7,6 +7,7 @@ interface CircuitSchematicProps {
   capacitance: number;
   tau: number;
   vc: number;
+  vr: number;
   current: number;
 }
 
@@ -16,6 +17,7 @@ export const CircuitSchematic: React.FC<CircuitSchematicProps> = ({
   capacitance,
   tau,
   vc,
+  vr,
   current,
 }) => {
   // Format current to mA for display
@@ -134,8 +136,19 @@ export const CircuitSchematic: React.FC<CircuitSchematicProps> = ({
           stroke="#10b981"
           strokeWidth="2.5"
         />
-        {/* Resistor label */}
-        <text x="535" y="60" fill="#10b981" fontSize="12" fontWeight="bold" textAnchor="middle">R</text>
+        {/* Resistor label & Vr voltage readout */}
+        <text x="535" y="63" fill="#10b981" fontSize="11" fontWeight="600" textAnchor="middle">R</text>
+        <text
+          x="535"
+          y="48"
+          fill="#10b981"
+          fontSize="11.5"
+          fontWeight="bold"
+          fontFamily="JetBrains Mono, monospace"
+          textAnchor="middle"
+        >
+          Vr = {vr.toFixed(2)} V
+        </text>
 
 
         {/* ── Capacitor ── */}
