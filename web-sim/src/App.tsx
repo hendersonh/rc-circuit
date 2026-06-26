@@ -90,6 +90,11 @@ export const App: React.FC = () => {
         setEnergyResistor(physics.energy_resistor);
         setEnergyCapacitor(physics.energy_capacitor);
 
+        // Auto-pause if the simulation reaches 10 Time Constants (10 tau)
+        if (currentElapsed >= 10 * physics.tau) {
+          setIsPaused(true);
+        }
+
         // Update scrolling graph buffers at a fixed rate (~30 Hz or every 33ms of simulation time)
         // to guarantee that the 300-point buffer represents a full 10-second window.
         if (currentElapsed - lastAppendTimeRef.current >= 0.033 || currentElapsed < lastAppendTimeRef.current) {
