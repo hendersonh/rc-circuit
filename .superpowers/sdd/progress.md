@@ -1,6 +1,0 @@
-Task 1: complete (PATH layout, review clean)
-Task 2: complete (battery multi-cell, review clean)
-Task 3: complete (box resistor instead of zigzag, user-directed change)
-Task 4: complete (capacitor parallel plates, review clean)
-Task 5: complete (knife switch integration, app runs)
-Task 6: complete (AA cleanup, no remaining raw circles in circuit_renderer.py)
