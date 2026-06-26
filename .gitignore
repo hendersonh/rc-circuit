@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Session memory (auto-generated)
+.remember/
+
+# Superpowers artifacts (auto-generated)
+.superpowers/sdd/
+.superpowers/scratch/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
