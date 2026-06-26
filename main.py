@@ -308,7 +308,8 @@ class CircuitSimWindow(QMainWindow):
         d.add(elm.Line().left())
         d.add(elm.Line().left())
         d.add(elm.Line().left())
-        d.add(elm.Line().up())
+        d.add(elm.Line().left())
+        d.add(elm.Line().left())
 
         d.draw(canvas=self.ax_schem, show=False)
 
