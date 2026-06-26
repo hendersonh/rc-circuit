@@ -53,7 +53,49 @@ const verticalCursorPlugin = {
   }
 };
 
-ChartJS.register(verticalCursorPlugin);
+const tauMilestonesPlugin = {
+  id: 'tauMilestones',
+  afterDraw: (chart: ChartJS) => {
+    const pluginOptions = (chart.options.plugins as Record<string, { tau?: number, isCharging?: boolean } | undefined>)?.tauMilestones;
+    if (!pluginOptions || !pluginOptions.tau) return;
+
+    const { tau, isCharging } = pluginOptions;
+    const ctx = chart.ctx;
+    const xAxis = chart.scales.x;
+    const chartArea: ChartArea = chart.chartArea;
+
+    const milestones = [
+      { t: tau, label: '1τ', pctCharge: '63.2%', pctDischarge: '36.8%' },
+      { t: 5 * tau, label: '5τ', pctCharge: '99.3%', pctDischarge: '0.7%' }
+    ];
+
+    ctx.save();
+    milestones.forEach((m) => {
+      const xPixel = xAxis.getPixelForValue(m.t);
+      if (xPixel >= chartArea.left && xPixel <= chartArea.right) {
+        // Draw vertical dashed line
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(xPixel, chartArea.top);
+        ctx.lineTo(xPixel, chartArea.bottom);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; // Subtle white dashed line
+        ctx.stroke();
+
+        // Draw label text
+        ctx.fillStyle = '#94a3b8'; // Slate 400
+        ctx.font = 'bold 9px JetBrains Mono';
+        const percentText = isCharging ? m.pctCharge : m.pctDischarge;
+        const fullLabel = `${m.label} (${percentText})`;
+        
+        ctx.fillText(fullLabel, xPixel + 5, chartArea.top + 15);
+      }
+    });
+    ctx.restore();
+  }
+};
+
+ChartJS.register(verticalCursorPlugin, tauMilestonesPlugin);
 
 export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   times,
@@ -230,6 +272,10 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
       },
       verticalCursor: {
         activeIndex: activeIndex,
+      },
+      tauMilestones: {
+        tau: tau,
+        isCharging: isCharging,
       },
     },
   } as unknown as ChartOptions<'line'>;
