@@ -131,16 +131,7 @@ Analyze the high-current discharge profile of a camera flash circuit to understa
 #### Scenario:
 A professional camera flash unit uses a large capacitor to store energy and discharges it rapidly through a flash tube. The flash tube acts as a low-resistance load: **$150\ \Omega$**. To power the tube, a **$2200\ \mu\text{F}$** capacitor is first charged fully to **$12.0\text{ V}$** from a internal battery.
 
-```
-                   [Switch]
-     +---o__________o_____+
-     |                    |
-   -----                -----
-   C = 2200 µF          |   |  Flash Tube
-   (Charged to 12V)     | R |  (150 Ohms)
-     |                  |   |
-     +--------------------+
-```
+![Camera Flash Unit Circuit Diagram](camera_flash_schematic.png)
 
 #### Student Tasks:
 1. **Initial Current calculation**: Calculate the initial peak current $I_0$ in amperes (A) and milliamperes (mA) at the exact instant the switch closes ($t = 0\text{ s}$).

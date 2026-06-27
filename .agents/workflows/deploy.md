@@ -150,21 +150,19 @@ error TS2345: Argument of type 'string' is not assignable...
 ### Rollback Available
 Previous version (v1.2.2) is still active.
 Run `/deploy rollback` if needed.
-```
-
----
+```---
 
 ## Platform Support
 
 | Platform | Command | Notes |
 |----------|---------|-------|
+| Cloudflare Pages | `./.agents/scripts/deploy.sh` | Builds locally, and triggers deploy via git push |
 | Vercel | `vercel --prod` | Auto-detected for Next.js |
 | Railway | `railway up` | Needs Railway CLI |
 | Fly.io | `fly deploy` | Needs flyctl |
 | Docker | `docker compose up -d` | For self-hosted |
 
 ---
-
 ## Examples
 
 ```

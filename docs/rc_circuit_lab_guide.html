@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RC Circuit Simulator Lab Guide</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 3rem;
+    }
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      margin-top: 1.8em;
+      margin-bottom: 0.5em;
+    }
+    h1 {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0.4em;
+      font-size: 2.2rem;
+      margin-top: 0;
+    }
+    h2 {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.3em;
+      font-size: 1.6rem;
+      margin-top: 2em;
+    }
+    h3 {
+      font-size: 1.25rem;
+    }
+    p {
+      margin-bottom: 1.2em;
+      font-size: 1.05rem;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #f1f5f9;
+      padding: 0.15em 0.3em;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #0f172a;
+    }
+    pre {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #f8fafc;
+      padding: 1.2rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+      margin: 1.5em 0;
+    }
+    pre code {
+      background-color: transparent;
+      padding: 0;
+      font-size: 0.9em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 0.85rem;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    blockquote {
+      border-left: 4px solid #f59e0b; /* Amber */
+      background-color: #fffbeb;
+      padding: 1rem 1.5rem;
+      margin: 1.5em 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      margin-bottom: 0;
+      font-weight: 500;
+      color: #78350f;
+    }
+    img {
+      max-width: 80%;
+      height: auto;
+      display: block;
+      margin: 2.5rem auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Print optimizations */
+    @media print {
+      body {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      h1, h2, h3 {
+        page-break-after: avoid;
+      }
+      table, pre, blockquote, tr {
+        page-break-inside: avoid;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+
+  <!-- MathJax Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <h1>Resistor-Capacitor (RC) Circuit Simulator Lab Guide</h1>
+<p><em>© 2026 Henderson Hood. All rights reserved. Distribution prohibited without express permission.</em></p>
+<p><strong>Course Level:</strong> Introductory Physics / General Physics II / Basic Circuit Analysis</p>
+<h2>Introduction</h2>
+<p>Resistor-Capacitor (RC) circuits are fundamental building blocks of modern electronics. They are used in signal filtering, time-delay elements, flash circuits, and power supply smoothing. </p>
+<p>This lab guide provides six structured, interactive exercises using the <strong>RC Circuit Simulator</strong>. These activities are designed to bridge the gap between textbook differential equations and physical behavior using a dual-verification approach:</p>
+<ol>
+<li><strong>Simulation Observation</strong>: Retrieve empirical data and measurements using the simulator controls and interactive cursor (click and drag on the graph to inspect, and click the <strong>✕ Clear</strong> button in the sidebar to dismiss the cursor).</li>
+<li><strong>Mathematical Verification</strong>: Calculate theoretical values using formulas and compare them to the simulation to prove mathematical parity.</li>
+</ol>
+<hr>
+<h2>Part 1: Guided Practice &amp; Analysis (Solutions Included in Key)</h2>
+<h3>Exercise 1: Finding and Verifying the Time Constant ($\tau$)</h3>
+<h4>Objective:</h4>
+<p>Observe the rate of capacitor charging and discharging, measure circuit metrics at multiples of the time constant ($\tau$), and mathematically verify the exponential curves.</p>
+<h4>Theoretical Background:</h4>
+<p>The speed at which a capacitor charges or discharges is governed by the time constant ($\tau$) of the circuit:
+$$\tau = R \times C$$
+During the <strong>charging</strong> phase (with source voltage $V_0 = 12.0\text{ V}$ and initial charge $q(0) = 0$):
+$$V_C(t) = V_0 \left(1 - e^{-t/\tau}\right)$$
+$$I(t) = \frac{V_0}{R} e^{-t/\tau}$$</p>
+<p>During the <strong>discharging</strong> phase (from a fully charged state $V_C(0) = 12.0\text{ V}$):
+$$V_C(t) = V_0 e^{-t/\tau}$$
+$$I(t) = -\frac{V_0}{R} e^{-t/\tau}$$</p>
+<h4>Simulator Steps:</h4>
+<ol>
+<li>Configure the simulator parameters to:<ul>
+<li><strong>Resistance ($R$):</strong> $10\text{ k}\Omega$ ($10,000\ \Omega$)</li>
+<li><strong>Capacitance ($C$):</strong> $220\ \mu\text{F}$ ($0.00022\text{ F}$)</li>
+</ul>
+</li>
+<li>Set the circuit mode to <strong>Charge</strong>. Click <strong>Reset</strong>, then click <strong>Play</strong>.</li>
+<li>Let the simulation run to steady state (it will pause automatically at $10\tau$).</li>
+<li>Drag the vertical cursor on the oscilloscope chart to the specified time stamps below and record the capacitor voltage ($V_C$) and loop current ($I$).</li>
+<li>Switch the circuit mode to <strong>Discharge</strong>. Click <strong>Reset</strong> and <strong>Play</strong>, then repeat the cursor measurements.</li>
+<li><em>(Optional)</em> Click the <strong>✕ Clear</strong> button next to the <strong>● Inspecting</strong> badge in the sidebar to dismiss the vertical cursor line and return to standard telemetry.</li>
+</ol>
+<h5>Data Table 1: Charging Phase ($V_0 = 12.0\text{ V}$)</h5>
+<table>
+<thead>
+<tr>
+<th align="left">Time Multiplier</th>
+<th align="left">Time $t$ (seconds)</th>
+<th align="left">Simulator $V_C$ (V)</th>
+<th align="left">Simulator $I$ (mA)</th>
+<th align="left">Calculated $V_C$ (V)</th>
+<th align="left">Calculated $I$ (mA)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">$t = 0$ (Initial)</td>
+<td align="left">$0.0\text{ s}$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$t = 1\tau$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$t = 3\tau$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$t = 5\tau$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<h5>Data Table 2: Discharging Phase ($V_C(0) = 12.0\text{ V}$)</h5>
+<table>
+<thead>
+<tr>
+<th align="left">Time Multiplier</th>
+<th align="left">Time $t$ (seconds)</th>
+<th align="left">Simulator $V_C$ (V)</th>
+<th align="left">Simulator $I$ (mA)</th>
+<th align="left">Calculated $V_C$ (V)</th>
+<th align="left">Calculated $I$ (mA)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">$t = 0$ (Initial)</td>
+<td align="left">$0.0\text{ s}$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$t = 1\tau$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$t = 3\tau$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$t = 5\tau$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<h4>Double-Verification Questions:</h4>
+<ol>
+<li><strong>Calculate the exact time constant ($\tau$)</strong> for this circuit configuration in seconds.</li>
+<li><strong>Show mathematically</strong> what percentage of the source voltage ($12.0\text{ V}$) a charging capacitor should reach at $t = 1\tau$, $3\tau$, and $5\tau$. Show your calculations and compare them to the simulator values.</li>
+<li>Why does the current flow in a negative direction (below the x-axis) during the discharge phase? What does the sign of the current represent physically?</li>
+</ol>
+<hr>
+<h3>Exercise 2: Engineering Design Challenge — The Time-Delay Switch</h3>
+<h4>Objective:</h4>
+<p>Use mathematical modeling to design a circuit configuration that triggers a switch at a target voltage at a specific time, and then verify the design in the simulator.</p>
+<h4>Scenario:</h4>
+<p>You are designing a delay safety switch for a machine control system. The safety relay is triggered when the capacitor voltage reaches exactly <strong>$8.0\text{ V}$</strong> from a fully discharged state. The safety protocol demands that this voltage must be reached exactly <strong>$2.0\text{ seconds}$</strong> after power-up. The voltage source is fixed at $V_0 = 12.0\text{ V}$.</p>
+<h4>Step 1: Mathematical Design (Calculations First)</h4>
+<ol>
+<li>Start with the charging equation: $V_C(t) = V_0 \left(1 - e^{-t/\tau}\right)$.</li>
+<li>Rearrange the equation to isolate the target time constant ($\tau$):
+$$\tau = \frac{-t}{\ln\left(1 - \frac{V_C(t)}{V_0}\right)}$$</li>
+<li>Plug in the specifications ($t = 2.0\text{ s}$, $V_C = 8.0\text{ V}$, and $V_0 = 12.0\text{ V}$) to calculate the required time constant $\tau$.<ul>
+<li>$\tau = $ ____________ seconds.</li>
+</ul>
+</li>
+<li>Select a standard capacitance value available on the simulator slider: <strong>$470\ \mu\text{F}$</strong>.</li>
+<li>Calculate the exact resistance $R$ in ohms required to produce your target $\tau$:<ul>
+<li>$R = $ ____________ $\Omega$.</li>
+</ul>
+</li>
+</ol>
+<h4>Step 2: Simulator Verification</h4>
+<ol>
+<li>Set the Capacitance to <strong>$470\ \mu\text{F}$</strong> and slide the Resistance to your calculated value (or the closest available value).</li>
+<li>Set the mode to <strong>Charge</strong>, click <strong>Reset</strong>, and click <strong>Play</strong>.</li>
+<li>Use the vertical cursor on the chart to read the voltage $V_C$ at exactly $t = 2.0\text{ s}$.</li>
+<li>Fill out the verification report:<ul>
+<li>Target Voltage at $2.0\text{ s}$: <strong>$8.0\text{ V}$</strong></li>
+<li>Simulated Voltage at $2.0\text{ s}$: ____________ V</li>
+<li>Voltage Error Percentage: ____________ %</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3>Exercise 3: Energy Storage &amp; The Half-Energy Loss Paradox</h3>
+<h4>Objective:</h4>
+<p>Investigate energy accumulation in a capacitor and explore the fundamental thermodynamic efficiency of charging a capacitor through a resistor.</p>
+<h4>Theoretical Background:</h4>
+<p>The instantaneous energy stored in a capacitor&#39;s electric field is:
+$$E_C(t) = \frac{1}{2} C [V_C(t)]^2$$
+The total energy supplied by the DC voltage source ($V_0$) during a complete charging cycle (until the capacitor is fully charged to $V_0$) is:
+$$E_{\text{source}} = C V_0^2$$
+The energy dissipated as heat in the resistor is the difference: $E_R = E_{\text{source}} - E_C$.</p>
+<h4>Simulator Steps:</h4>
+<ol>
+<li>Set the Capacitance to <strong>$1000\ \mu\text{F}$</strong> ($0.001\text{ F}$).</li>
+<li>Perform three charging simulations to full charge ($V_C = 12.0\text{ V}$) using different resistance values: <strong>$100\ \Omega$</strong>, <strong>$1\text{ k}\Omega$</strong>, and <strong>$10\text{ k}\Omega$</strong>.</li>
+<li>For each case, record the simulator&#39;s steady-state metrics and calculate the energy parameters.</li>
+</ol>
+<h5>Data Table 3: Energy vs. Resistance ($C = 1000\ \mu\text{F}$, $V_0 = 12.0\text{ V}$)</h5>
+<table>
+<thead>
+<tr>
+<th align="left">Resistance $R$</th>
+<th align="left">Final $V_C$ (V)</th>
+<th align="left">Calculated $E_C$ (J)</th>
+<th align="left">Calculated $E_{\text{source}}$ (J)</th>
+<th align="left">Dissipated Heat $E_R$ (J)</th>
+<th align="left">Energy Efficiency ($E_C / E_{\text{source}}$)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">$100\ \Omega$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$1\text{ k}\Omega$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">$10\text{ k}\Omega$</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<h4>Double-Verification Questions:</h4>
+<ol>
+<li><strong>Explain the outcome</strong>: Does the value of the resistance $R$ affect the final energy stored in the capacitor at full charge? Does it affect the energy efficiency? Use your table data to justify your answer.</li>
+<li><strong>Calculate the paradox</strong>: Where does the missing energy go during the charging phase? Show mathematically that for <em>any</em> resistor value $R$, the heat dissipated in the resistor during a complete charge from $0\text{ V}$ to $V_0$ is exactly equal to the energy stored in the capacitor ($E_R = \frac{1}{2} C V_0^2$).
+<em>(Hint: Use $E_R = \int_0^{\infty} I(t)^2 R , dt$ and substitute $I(t) = \frac{V_0}{R} e^{-t/\tau}$)</em>.</li>
+</ol>
+<hr>
+<hr>
+<h2>Part 2: Real-World Engineering Scenarios (Homework Challenges - Solutions NOT Included)</h2>
+<h3>Exercise 4: Camera Flash Unit (High-Current Discharge)</h3>
+<h4>Objective:</h4>
+<p>Analyze the high-current discharge profile of a camera flash circuit to understand energy release rates in practical photography equipment.</p>
+<h4>Scenario:</h4>
+<p>A professional camera flash unit uses a large capacitor to store energy and discharges it rapidly through a flash tube. The flash tube acts as a low-resistance load: <strong>$150\ \Omega$</strong>. To power the tube, a <strong>$2200\ \mu\text{F}$</strong> capacitor is first charged fully to <strong>$12.0\text{ V}$</strong> from a internal battery.</p>
+<p><img src="camera_flash_schematic.png" alt="Camera Flash Unit Circuit Diagram"></p>
+<h4>Student Tasks:</h4>
+<ol>
+<li><strong>Initial Current calculation</strong>: Calculate the initial peak current $I_0$ in amperes (A) and milliamperes (mA) at the exact instant the switch closes ($t = 0\text{ s}$).</li>
+<li><strong>Initial Energy calculation</strong>: Calculate the total energy stored in the capacitor in Joules (J) just prior to triggering the flash.</li>
+<li><strong>Decay time calculation</strong>: The flash bulb stops emitting light when the capacitor voltage drops to $10%$ of its maximum value ($V_C = 1.2\text{ V}$). Calculate the duration of the visible flash (i.e. the time it takes to drop from $12.0\text{ V}$ to $1.2\text{ V}$).</li>
+<li><strong>Simulator Validation</strong>: <ul>
+<li>Set the simulator to $C = 2200\ \mu\text{F}$ and $R = 150\ \Omega$.</li>
+<li>Fully charge the capacitor, switch to <strong>Discharge</strong>, click <strong>Reset</strong>, and click <strong>Play</strong>.</li>
+<li>Pause the simulator and drag the cursor on the graph to the point where $V_C = 1.2\text{ V}$. </li>
+<li>Record the elapsed time, current, and stored energy ($E_C$). Do they match your mathematical calculations?</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3>Exercise 5: Cardiac Pacemaker Pulse Control</h3>
+<h4>Objective:</h4>
+<p>Calculate the parameter settings for a variable cardiac pacemaker to maintain resting and active heart rates, and simulate the heartbeat timing.</p>
+<h4>Scenario:</h4>
+<p>A cardiac pacemaker sends regular electrical pulses to stimulate a patient&#39;s heart. The timing of the pulse is controlled by an RC circuit charging from a $12.0\text{ V}$ lithium cell. The pacemaker is configured to emit a stimulation pulse when the capacitor charges from $0\text{ V}$ to exactly <strong>$7.586\text{ V}$</strong> (which corresponds to $1\tau$, or $63.2%$ of the source voltage). Once this trigger voltage is reached, the pacemaker discharges the capacitor instantly to $0\text{ V}$ and the cycle starts again.</p>
+<pre><code>       Resting heart rate target: 75 beats per minute (BPM)
+       Active heart rate target:  120 beats per minute (BPM)
+       Pacemaker Capacitance:     Fixed at 100 µF
+</code></pre>
+<h4>Student Tasks:</h4>
+<ol>
+<li><strong>Resting Heart Rate Timing</strong>: <ul>
+<li>Calculate the required time interval (period $T$ in seconds) between pulses to maintain a heart rate of $75\text{ BPM}$.</li>
+<li>Since $7.586\text{ V}$ represents $1\tau$, the period $T$ must equal $\tau$. Calculate the required resistance $R$ (in $\Omega$ and $\text{k}\Omega$) for the pacemaker.</li>
+</ul>
+</li>
+<li><strong>Active Heart Rate Timing</strong>: <ul>
+<li>During physical exercise, the patient&#39;s target heart rate rises to $120\text{ BPM}$. Calculate the new period $T$ required.</li>
+<li>Calculate the new resistance $R$ that the pacemaker&#39;s microchip must switch to in order to maintain $120\text{ BPM}$.</li>
+</ul>
+</li>
+<li><strong>Simulator Validation</strong>:<ul>
+<li>Set $C = 100\ \mu\text{F}$ in the simulator.</li>
+<li>Run the simulation for the Resting case ($R$ from Task 1) and the Active case ($R$ from Task 2).</li>
+<li>Use the cursor on the graph to check the time it takes for $V_C$ to reach $7.59\text{ V}$ in both scenarios. Confirm that the simulation timings match your calculations.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3>Exercise 6: Intermittent Windshield Wiper Delay Control</h3>
+<h4>Objective:</h4>
+<p>Examine how a variable resistor (potentiometer) controls delay timing in automotive accessories, and map resistance thresholds to delay periods.</p>
+<h4>Scenario:</h4>
+<p>An automobile&#39;s intermittent windshield wipers sweep once whenever a capacitor in a timing circuit charges from $0\text{ V}$ to <strong>$9.0\text{ V}$</strong> under a $V_0 = 12.0\text{ V}$ source. The timing circuit uses a fixed capacitor <strong>$C = 100\ \mu\text{F}$</strong> connected in series with a driver-adjustable variable resistor (potentiometer). The driver adjusts the wipe delay using a dial on the steering column.</p>
+<pre><code>    Dial Setting:   Min Delay (dial turned left)  --&gt;  R = 10 kOhms
+                    Max Delay (dial turned right) --&gt;  R = 50 kOhms
+</code></pre>
+<h4>Student Tasks:</h4>
+<ol>
+<li><strong>General Delay Formula</strong>: Derive the general formula for the delay time $t_{\text{delay}}$ as a function of $R$ and $C$ when the trigger threshold is set to $9.0\text{ V}$ under a $12.0\text{ V}$ source.</li>
+<li><strong>Minimum Delay Time</strong>: Calculate the minimum delay time $t_{\text{min}}$ (in seconds) between wiper sweeps when $R = 10\text{ k}\Omega$.</li>
+<li><strong>Maximum Delay Time</strong>: Calculate the maximum delay time $t_{\text{max}}$ (in seconds) between wiper sweeps when $R = 50\text{ k}\Omega$.</li>
+<li><strong>Simulator Validation</strong>:<ul>
+<li>Set $C = 100\ \mu\text{F}$ in the simulator.</li>
+<li>Run charging simulations for $R = 10\text{ k}\Omega$ and $R = 50\text{ k}\Omega$.</li>
+<li>Drag the oscilloscope cursor to find the exact times where the voltage $V_C$ crosses $9.00\text{ V}$.</li>
+<li>Report the simulated delay times and calculate the percentage error between the simulation and your theoretical results.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<hr>
+<h2>Instructor Solutions &amp; Verification Key (Part 1 Only)</h2>
+<h3>Exercise 1 Solutions</h3>
+<ul>
+<li><strong>Time Constant ($\tau$):</strong> 
+$$\tau = R \times C = 10,000\ \Omega \times 220 \times 10^{-6}\text{ F} = 2.2\text{ s}$$</li>
+<li><strong>Data Time Points:</strong><ul>
+<li>$\tau = 2.2\text{ s}$</li>
+<li>$3\tau = 6.6\text{ s}$</li>
+<li>$5\tau = 11.0\text{ s}$</li>
+</ul>
+</li>
+</ul>
+<h4>Expected Values (Charging)</h4>
+<ul>
+<li><strong>$t = 0\text{ s}$</strong>: $V_C = 0.0\text{ V}$, $I = 1.20\text{ mA}$</li>
+<li><strong>$t = 1\tau\ (2.2\text{ s})$</strong>: <ul>
+<li>$V_C = 12(1 - e^{-1}) \approx 7.586\text{ V}$ ($63.2%$ of $12\text{ V}$)</li>
+<li>$I = 1.20 \times e^{-1} \approx 0.441\text{ mA}$ ($36.8%$ of $1.2\text{ mA}$)</li>
+</ul>
+</li>
+<li><strong>$t = 3\tau\ (6.6\text{ s})$</strong>: <ul>
+<li>$V_C = 12(1 - e^{-3}) \approx 11.402\text{ V}$ ($95.0%$ of $12\text{ V}$)</li>
+<li>$I = 1.20 \times e^{-3} \approx 0.060\text{ mA}$ ($5.0%$ of $1.2\text{ mA}$)</li>
+</ul>
+</li>
+<li><strong>$t = 5\tau\ (11.0\text{ s})$</strong>: <ul>
+<li>$V_C = 12(1 - e^{-5}) \approx 11.919\text{ V}$ ($99.3%$ of $12\text{ V}$)</li>
+<li>$I = 1.20 \times e^{-5} \approx 0.008\text{ mA}$ ($0.7%$ of $1.2\text{ mA}$)</li>
+</ul>
+</li>
+</ul>
+<h4>Expected Values (Discharging)</h4>
+<ul>
+<li><strong>$t = 0\text{ s}$</strong>: $V_C = 12.0\text{ V}$, $I = -1.20\text{ mA}$ (current flows out of the capacitor in reverse)</li>
+<li><strong>$t = 1\tau\ (2.2\text{ s})$</strong>: $V_C = 12 e^{-1} \approx 4.415\text{ V}$ ($36.8%$), $I = -1.2 e^{-1} \approx -0.441\text{ mA}$</li>
+<li><strong>$t = 3\tau\ (6.6\text{ s})$</strong>: $V_C = 12 e^{-3} \approx 0.597\text{ V}$ ($5.0%$), $I = -1.2 e^{-3} \approx -0.060\text{ mA}$</li>
+<li><strong>$t = 5\tau\ (11.0\text{ s})$</strong>: $V_C = 12 e^{-5} \approx 0.081\text{ V}$ ($0.7%$), $I = -1.2 e^{-5} \approx -0.008\text{ mA}$</li>
+</ul>
+<hr>
+<h3>Exercise 2 Solutions</h3>
+<ol>
+<li><strong>Solve for $\tau$</strong>:
+$$\tau = \frac{-2.0}{\ln\left(1 - \frac{8.0}{12.0}\right)} = \frac{-2.0}{\ln\left(1 - \frac{2}{3}\right)} = \frac{-2.0}{\ln(1/3)} = \frac{-2.0}{-1.0986} \approx 1.820\text{ s}$$</li>
+<li><strong>Solve for Resistance $R$</strong>:
+$$R = \frac{\tau}{C} = \frac{1.820\text{ s}}{470 \times 10^{-6}\text{ F}} \approx 3,873\ \Omega \approx 3.87\text{ k}\Omega$$</li>
+<li><strong>Simulation Verification</strong>:
+Setting $C = 470\ \mu\text{F}$ and $R = 3.87\text{ k}\Omega$ (or $3.9\text{ k}\Omega$ on logarithmic scale) will yield exactly $8.0\text{ V}$ at $t = 2.0\text{ seconds}$, verifying the design.</li>
+</ol>
+<hr>
+<h3>Exercise 3 Solutions</h3>
+<p>For $C = 1000\ \mu\text{F}$ and $V_0 = 12.0\text{ V}$:</p>
+<ul>
+<li><strong>Capacitor Energy at Full Charge ($E_C$):</strong>
+$$E_C = \frac{1}{2} C V_0^2 = \frac{1}{2} (0.001\text{ F}) (12.0\text{ V})^2 = 0.072\text{ Joules}$$</li>
+<li><strong>Source Energy supplied ($E_{\text{source}}$):</strong>
+$$E_{\text{source}} = C V_0^2 = (0.001\text{ F}) (12.0\text{ V})^2 = 0.144\text{ Joules}$$</li>
+<li><strong>Resistor Heat Loss ($E_R$):</strong>
+$$E_R = E_{\text{source}} - E_C = 0.144\text{ J} - 0.072\text{ J} = 0.072\text{ Joules}$$</li>
+<li><strong>Efficiency:</strong> 
+$$\text{Efficiency} = \frac{E_C}{E_{\text{source}}} = 50.0%$$</li>
+</ul>
+<h4>Expected Table Results:</h4>
+<p>Regardless of the resistance $R$ ($100\ \Omega$, $1\text{ k}\Omega$, $10\text{ k}\Omega$), the values are:</p>
+<ul>
+<li>Final $V_C = 12.0\text{ V}$</li>
+<li>Calculated $E_C = 0.072\text{ J}$</li>
+<li>Calculated $E_{\text{source}} = 0.144\text{ J}$</li>
+<li>Dissipated Heat $E_R = 0.072\text{ J}$</li>
+<li>Efficiency = $50.0%$</li>
+</ul>
+<h4>Mathematical Proof of the Paradox:</h4>
+<p>$$E_R = \int_0^{\infty} I(t)^2 R , dt$$
+Substitute $I(t) = \frac{V_0}{R} e^{-t/\tau}$:
+$$E_R = \int_0^{\infty} \left(\frac{V_0}{R} e^{-t/\tau}\right)^2 R , dt = \int_0^{\infty} \frac{V_0^2}{R} e^{-2t/\tau} , dt$$
+Evaluate the integral:
+$$E_R = \frac{V_0^2}{R} \left[ -\frac{\tau}{2} e^{-2t/\tau} \right]_0^{\infty} = \frac{V_0^2}{R} \left( 0 - \left(-\frac{\tau}{2}\right) \right) = \frac{V_0^2 \tau}{2 R}$$
+Since $\tau = R C$:
+$$E_R = \frac{V_0^2 (R C)}{2 R} = \frac{1}{2} C V_0^2$$
+This proves that exactly half the energy supplied by the source is dissipated in the resistor as heat, completely independent of the value of $R$.</p>
+
+</body>
+</html>

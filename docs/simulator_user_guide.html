@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulator User Guide</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 3rem;
+    }
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      margin-top: 1.8em;
+      margin-bottom: 0.5em;
+    }
+    h1 {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0.4em;
+      font-size: 2.2rem;
+      margin-top: 0;
+    }
+    h2 {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.3em;
+      font-size: 1.6rem;
+      margin-top: 2em;
+    }
+    h3 {
+      font-size: 1.25rem;
+    }
+    p {
+      margin-bottom: 1.2em;
+      font-size: 1.05rem;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #f1f5f9;
+      padding: 0.15em 0.3em;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #0f172a;
+    }
+    pre {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #f8fafc;
+      padding: 1.2rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+      margin: 1.5em 0;
+    }
+    pre code {
+      background-color: transparent;
+      padding: 0;
+      font-size: 0.9em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 0.85rem;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    blockquote {
+      border-left: 4px solid #f59e0b; /* Amber */
+      background-color: #fffbeb;
+      padding: 1rem 1.5rem;
+      margin: 1.5em 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      margin-bottom: 0;
+      font-weight: 500;
+      color: #78350f;
+    }
+    img {
+      max-width: 80%;
+      height: auto;
+      display: block;
+      margin: 2.5rem auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Print optimizations */
+    @media print {
+      body {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      h1, h2, h3 {
+        page-break-after: avoid;
+      }
+      table, pre, blockquote, tr {
+        page-break-inside: avoid;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+
+  <!-- MathJax Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <h1>RC Circuit Simulator Quick-Start Guide</h1>
+<p><em>© 2026 Henderson Hood. All rights reserved. Distribution prohibited without express permission.</em></p>
+<p>This guide explains how to use the simulator to complete your lab exercises.</p>
+<hr>
+<h2>1. The Controls (Left Sidebar)</h2>
+<ul>
+<li><strong>Resistance ($R$):</strong> Drag the slider to change the resistor size ($100\ \Omega$ to $100\text{ k}\Omega$).</li>
+<li><strong>Capacitance ($C$):</strong> Drag the slider to change the capacitor size ($10\ \mu\text{F}$ to $4700\ \mu\text{F}$).</li>
+<li><strong>Circuit Mode:</strong> <ul>
+<li><strong>Charge:</strong> Connects the battery to charge the capacitor.</li>
+<li><strong>Discharge:</strong> Disconnects the battery to discharge the capacitor.</li>
+</ul>
+</li>
+<li><strong>Control Buttons:</strong><ul>
+<li><strong>Play / Pause:</strong> Starts or pauses the simulation.</li>
+<li><strong>Reset:</strong> Resets time back to $0$ seconds, clears the graph, and resets the capacitor.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2>2. Reading Telemetry (Left Sidebar)</h2>
+<ul>
+<li><strong>Telemetry Readouts:</strong> Shows real-time values of capacitor voltage ($V_C$), resistor voltage ($V_R$), current ($I$), and elapsed time ($t$).</li>
+<li><strong>Time Constant ($\tau$):</strong> Displays the calculated time constant ($\tau = R \times C$). The simulation automatically pauses when it reaches $10\tau$.</li>
+<li><strong>Energy Distribution:</strong> Shows the energy supplied by the battery, stored in the capacitor, and lost as heat in the resistor.</li>
+<li><strong>Ratio Bar:</strong> Visualizes the percentage split of energy between the capacitor (blue) and resistor (grey).</li>
+</ul>
+<hr>
+<h2>3. Visuals &amp; Interactive Chart (Right Panel)</h2>
+<ul>
+<li><strong>Schematic:</strong> Displays the circuit layout. The moving dashed lines represent current flow (faster speed = more current).</li>
+<li><strong>Graph:</strong> Tracks Capacitor Voltage (blue curve) and Current (green/red curve) over time.</li>
+<li><strong>Data Inspector:</strong> Click and drag on the graph. An amber dashed vertical line will track your pointer, and the sidebar panels will update to show the exact values at that specific moment (indicated by a <strong>● Inspecting</strong> badge in the sidebar panel headers). Click the <strong>✕ Clear</strong> button next to either badge to dismiss the cursor line.</li>
+</ul>
+<hr>
+<h2>4. Basic Walkthrough</h2>
+<ol>
+<li>Select <strong>Charge</strong> mode. Set $R = 10\text{ k}\Omega$ and $C = 100\ \mu\text{F}$ (giving $\tau = 1.0\text{ s}$).</li>
+<li>Click <strong>Reset</strong>, then click <strong>Play</strong>.</li>
+<li>Once the simulation reaches steady state ($10.0\text{ s}$) and pauses, <strong>click and drag</strong> on the graph until the vertical line is at $t = 1.0\text{ s}$ ($1\tau$).</li>
+<li>Check the sidebar readouts: the capacitor voltage should read approximately $7.59\text{ V}$ ($63.2%$ of the source voltage).</li>
+<li>Switch to <strong>Discharge</strong> mode, click <strong>Reset</strong>, and click <strong>Play</strong> to observe discharging.</li>
+<li>Click the <strong>✕ Clear</strong> button next to the <strong>● Inspecting</strong> badge in the sidebar to remove the vertical line and return to standard telemetry.</li>
+</ol>
+
+</body>
+</html>
