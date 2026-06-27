@@ -1,5 +1,5 @@
 // ChartCanvas.tsx
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -19,13 +19,13 @@ interface ChartCanvasProps {
   vcData: number[];
   vrData: number[];
   iData: number[];
-  ecData: number[];
-  erData: number[];
   isPaused: boolean;
   isCharging: boolean;
   onPauseSim: () => void;
   resistance: number;
   capacitance: number;
+  activeIndex: number | null;
+  setActiveIndex: (index: number | null) => void;
 }
 
 // Custom plugin to draw vertical cursor line on active index
@@ -102,24 +102,16 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   vcData,
   vrData,
   iData,
-  ecData,
-  erData,
   isPaused,
   isCharging,
   onPauseSim,
   resistance,
   capacitance,
+  activeIndex,
+  setActiveIndex,
 }) => {
   const chartRef = useRef<ChartJS<'line'> | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Clear cursor if simulation is playing
-  useEffect(() => {
-    if (!isPaused) {
-      setActiveIndex(null);
-    }
-  }, [isPaused]);
 
   // Map data to chart.js structure
   const chartData = {
@@ -334,43 +326,8 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
-  // Render floating tooltip data box
-  const renderTooltip = () => {
-    if (activeIndex === null || activeIndex >= times.length) return null;
-
-    return (
-      <div className="cursor-tooltip">
-        <div className="tooltip-col">
-          <span className="tooltip-label">Time:</span>
-          <span className="tooltip-value time">{times[activeIndex].toFixed(2)}s</span>
-        </div>
-        <div className="tooltip-col">
-          <span className="tooltip-label">Vc:</span>
-          <span className="tooltip-value vc">{vcData[activeIndex].toFixed(2)}V</span>
-        </div>
-        <div className="tooltip-col">
-          <span className="tooltip-label">Vr:</span>
-          <span className="tooltip-value current" style={{ color: 'var(--accent-green)' }}>{vrData[activeIndex].toFixed(2)}V</span>
-        </div>
-        <div className="tooltip-col">
-          <span className="tooltip-label">Current:</span>
-          <span className="tooltip-value current">{iData[activeIndex].toFixed(2)}mA</span>
-        </div>
-        <div className="tooltip-col">
-          <span className="tooltip-label">E_cap:</span>
-          <span className="tooltip-value ec">{ecData[activeIndex].toFixed(2)}mJ</span>
-        </div>
-        <div className="tooltip-col">
-          <span className="tooltip-label">E_res:</span>
-          <span className="tooltip-value er">{erData[activeIndex].toFixed(2)}mJ</span>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="chart-wrapper">
-      {renderTooltip()}
       <Line
         ref={chartRef}
         data={chartData}

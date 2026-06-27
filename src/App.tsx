@@ -36,6 +36,14 @@ export const App: React.FC = () => {
   const [capacitance, setCapacitance] = useState<number>(physics.C);
   const [isCharging, setIsCharging] = useState<boolean>(true);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [inspectedIndex, setInspectedIndex] = useState<number | null>(null);
+
+  // Clear cursor if simulation is playing
+  useEffect(() => {
+    if (!isPaused) {
+      setInspectedIndex(null);
+    }
+  }, [isPaused]);
 
   // Readout states (synchronized from physics engine per frame)
   const [vc, setVc] = useState<number>(0);
@@ -238,6 +246,7 @@ export const App: React.FC = () => {
     setEnergyBattery(0);
     setEnergyResistor(0);
     setEnergyCapacitor(physics.energy_capacitor);
+    setInspectedIndex(null);
     setBuffers({
       times: [],
       vcData: [],
@@ -258,21 +267,27 @@ export const App: React.FC = () => {
     return c >= 1e-3 ? `${(c * 1000).toFixed(0)} mF` : `${(c * 1e6).toFixed(1)} µF`;
   };
 
+  const isInspecting = inspectedIndex !== null && inspectedIndex < buffers.times.length;
+
+  const displayTime = isInspecting ? buffers.times[inspectedIndex] : simTime;
+  const displayVc = isInspecting ? buffers.vcData[inspectedIndex] : vc;
+  const displayVr = isInspecting ? buffers.vrData[inspectedIndex] : (isCharging ? physics.current : physics.discharge_current) * resistance;
+  const displayI = isInspecting ? buffers.iData[inspectedIndex] : (isCharging ? physics.current : physics.discharge_current) * 1000;
+  const displayEbatt = isInspecting ? buffers.ebattData[inspectedIndex] : energyBattery * 1000;
+  const displayEcap = isInspecting ? buffers.ecData[inspectedIndex] : energyCapacitor * 1000;
+  const displayEres = isInspecting ? buffers.erData[inspectedIndex] : energyResistor * 1000;
+
   // Compute energy balance split percentage
-  const totalDissipatedAndStored = energyCapacitor + energyResistor;
+  const totalDissipatedAndStored = displayEcap + displayEres;
   let pctCap = 50;
   let pctRes = 50;
   if (totalDissipatedAndStored > 1e-9) {
-    pctCap = (energyCapacitor / totalDissipatedAndStored) * 100;
-    pctRes = (energyResistor / totalDissipatedAndStored) * 100;
+    pctCap = (displayEcap / totalDissipatedAndStored) * 100;
+    pctRes = (displayEres / totalDissipatedAndStored) * 100;
   } else {
     pctCap = isCharging ? 50 : 100;
     pctRes = isCharging ? 50 : 0;
   }
-
-  // Current value in mA for readouts
-  const currentMA = (isCharging ? physics.current : physics.discharge_current) * 1000;
-  const vr = (currentMA / 1000) * resistance;
 
   return (
     <div className="app-container">
@@ -354,24 +369,27 @@ export const App: React.FC = () => {
         </div>
 
         {/* Numeric Readouts */}
-        <div className="readouts-panel">
-          <h3>Telemetry Readouts</h3>
+        <div className={`readouts-panel ${isInspecting ? 'inspecting' : ''}`}>
+          <h3>
+            Telemetry Readouts
+            {isInspecting && <span className="inspect-badge">● Inspecting</span>}
+          </h3>
           
           <div className="readout-row">
             <span className="readout-label">Vc (Capacitor)</span>
-            <span className="readout-value vc">{vc.toFixed(2)} V</span>
+            <span className="readout-value vc">{displayVc.toFixed(2)} V</span>
           </div>
 
           <div className="readout-row">
             <span className="readout-label">Vr (Resistor)</span>
             <span className="readout-value current" style={{ color: 'var(--accent-green)' }}>
-              {vr.toFixed(2)} V
+              {displayVr.toFixed(2)} V
             </span>
           </div>
           
           <div className="readout-row">
             <span className="readout-label">I (Loop Current)</span>
-            <span className="readout-value current">{currentMA.toFixed(2)} mA</span>
+            <span className="readout-value current">{displayI.toFixed(2)} mA</span>
           </div>
           
           <div className="readout-row">
@@ -381,28 +399,31 @@ export const App: React.FC = () => {
           
           <div className="readout-row">
             <span className="readout-label">t (Sim Time)</span>
-            <span className="readout-value">{simTime.toFixed(1)} s</span>
+            <span className="readout-value">{displayTime.toFixed(2)} s</span>
           </div>
         </div>
 
         {/* Energy Balance */}
-        <div className="readouts-panel">
-          <h3>Energy Distribution</h3>
+        <div className={`readouts-panel ${isInspecting ? 'inspecting' : ''}`}>
+          <h3>
+            Energy Distribution
+            {isInspecting && <span className="inspect-badge">● Inspecting</span>}
+          </h3>
           
           <div className="readout-row">
             <span className="readout-label">E_batt (Supply)</span>
-            <span className="readout-value energy">{(energyBattery * 1000).toFixed(2)} mJ</span>
+            <span className="readout-value energy">{displayEbatt.toFixed(2)} mJ</span>
           </div>
 
           <div className="readout-row">
             <span className="readout-label">E_cap (Stored)</span>
-            <span className="readout-value vc">{(energyCapacitor * 1000).toFixed(2)} mJ</span>
+            <span className="readout-value vc">{displayEcap.toFixed(2)} mJ</span>
           </div>
 
           <div className="readout-row">
             <span className="readout-label">E_res (Heat Loss)</span>
             <span className="readout-value energy" style={{ color: '#64748b' }}>
-              {(energyResistor * 1000).toFixed(2)} mJ
+              {displayEres.toFixed(2)} mJ
             </span>
           </div>
 
@@ -434,9 +455,9 @@ export const App: React.FC = () => {
             resistance={resistance}
             capacitance={capacitance}
             tau={physics.tau}
-            vc={vc}
-            vr={vr}
-            current={isCharging ? physics.current : physics.discharge_current}
+            vc={isInspecting ? displayVc : vc}
+            vr={isInspecting ? displayVr : (isCharging ? physics.current : physics.discharge_current) * resistance}
+            current={isInspecting ? displayI / 1000 : (isCharging ? physics.current : physics.discharge_current)}
           />
         </section>
 
@@ -447,13 +468,13 @@ export const App: React.FC = () => {
             vcData={buffers.vcData}
             vrData={buffers.vrData}
             iData={buffers.iData}
-            ecData={buffers.ecData}
-            erData={buffers.erData}
             isPaused={isPaused}
             isCharging={isCharging}
             onPauseSim={() => setIsPaused(true)}
             resistance={resistance}
             capacitance={capacitance}
+            activeIndex={inspectedIndex}
+            setActiveIndex={setInspectedIndex}
           />
         </section>
       </main>
