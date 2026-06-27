@@ -297,3 +297,29 @@
   50% { opacity: 1; }
 }
 
+.clear-inspect-btn {
+  font-size: 0.62rem;
+  font-family: 'Outfit', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-left: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+.clear-inspect-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444; /* Red accent on hover */
+}
+
+

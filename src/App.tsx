@@ -375,7 +375,18 @@ export const App: React.FC = () => {
         <div className={`readouts-panel ${isInspecting ? 'inspecting' : ''}`}>
           <h3>
             Telemetry Readouts
-            {isInspecting && <span className="inspect-badge">● Inspecting</span>}
+            {isInspecting && (
+              <>
+                <span className="inspect-badge">● Inspecting</span>
+                <button
+                  className="clear-inspect-btn"
+                  onClick={() => setInspectedIndex(null)}
+                  title="Clear inspection cursor"
+                >
+                  ✕ Clear
+                </button>
+              </>
+            )}
           </h3>
           
           <div className="readout-row">
@@ -410,7 +421,18 @@ export const App: React.FC = () => {
         <div className={`readouts-panel ${isInspecting ? 'inspecting' : ''}`}>
           <h3>
             Energy Distribution
-            {isInspecting && <span className="inspect-badge">● Inspecting</span>}
+            {isInspecting && (
+              <>
+                <span className="inspect-badge">● Inspecting</span>
+                <button
+                  className="clear-inspect-btn"
+                  onClick={() => setInspectedIndex(null)}
+                  title="Clear inspection cursor"
+                >
+                  ✕ Clear
+                </button>
+              </>
+            )}
           </h3>
           
           <div className="readout-row">
