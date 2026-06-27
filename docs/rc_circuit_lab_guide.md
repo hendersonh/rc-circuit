@@ -8,7 +8,7 @@
 Resistor-Capacitor (RC) circuits are fundamental building blocks of modern electronics. They are used in signal filtering, time-delay elements, flash circuits, and power supply smoothing. 
 
 This lab guide provides six structured, interactive exercises using the **RC Circuit Simulator**. These activities are designed to bridge the gap between textbook differential equations and physical behavior using a dual-verification approach:
-1. **Simulation Observation**: Retrieve empirical data and measurements using the simulator controls and interactive cursor.
+1. **Simulation Observation**: Retrieve empirical data and measurements using the simulator controls and interactive cursor (click and drag on the graph to inspect, and click the **✕ Clear** button in the sidebar to dismiss the cursor).
 2. **Mathematical Verification**: Calculate theoretical values using formulas and compare them to the simulation to prove mathematical parity.
 
 ---
@@ -38,6 +38,7 @@ $$I(t) = -\frac{V_0}{R} e^{-t/\tau}$$
 3. Let the simulation run to steady state (it will pause automatically at $10\tau$).
 4. Drag the vertical cursor on the oscilloscope chart to the specified time stamps below and record the capacitor voltage ($V_C$) and loop current ($I$).
 5. Switch the circuit mode to **Discharge**. Click **Reset** and **Play**, then repeat the cursor measurements.
+6. *(Optional)* Click the **✕ Clear** button next to the **● Inspecting** badge in the sidebar to dismiss the vertical cursor line and return to standard telemetry.
 
 ##### Data Table 1: Charging Phase ($V_0 = 12.0\text{ V}$)
 | Time Multiplier | Time $t$ (seconds) | Simulator $V_C$ (V) | Simulator $I$ (mA) | Calculated $V_C$ (V) | Calculated $I$ (mA) |

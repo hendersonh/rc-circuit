@@ -29,7 +29,7 @@ This guide explains how to use the simulator to complete your lab exercises.
 ## 3. Visuals & Interactive Chart (Right Panel)
 * **Schematic:** Displays the circuit layout. The moving dashed lines represent current flow (faster speed = more current).
 * **Graph:** Tracks Capacitor Voltage (blue curve) and Current (green/red curve) over time.
-* **Data Inspector:** Click and drag on the graph. An amber dashed vertical line will track your pointer, and the sidebar panels will update to show the exact values at that specific moment (indicated by a **● Inspecting** badge in the sidebar panel headers).
+* **Data Inspector:** Click and drag on the graph. An amber dashed vertical line will track your pointer, and the sidebar panels will update to show the exact values at that specific moment (indicated by a **● Inspecting** badge in the sidebar panel headers). Click the **✕ Clear** button next to either badge to dismiss the cursor line.
 
 ---
 
@@ -39,3 +39,4 @@ This guide explains how to use the simulator to complete your lab exercises.
 3. Once the simulation reaches steady state ($10.0\text{ s}$) and pauses, **click and drag** on the graph until the vertical line is at $t = 1.0\text{ s}$ ($1\tau$).
 4. Check the sidebar readouts: the capacitor voltage should read approximately $7.59\text{ V}$ ($63.2\%$ of the source voltage).
 5. Switch to **Discharge** mode, click **Reset**, and click **Play** to observe discharging.
+6. Click the **✕ Clear** button next to the **● Inspecting** badge in the sidebar to remove the vertical line and return to standard telemetry.
