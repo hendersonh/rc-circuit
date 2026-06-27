@@ -298,6 +298,9 @@ export const App: React.FC = () => {
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             Real-time transient visualizer
           </p>
+          <p style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '4px', lineHeight: '1.2' }}>
+            © 2026 Henderson Hood. All rights reserved. Distribution prohibited without express permission.
+          </p>
         </div>
 
         {/* Resistance Slider */}
