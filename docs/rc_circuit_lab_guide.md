@@ -1,4 +1,7 @@
 # Resistor-Capacitor (RC) Circuit Simulator Lab Guide
+
+*© 2026 Henderson Hood. All rights reserved. Distribution prohibited without express permission.*
+
 **Course Level:** Introductory Physics / General Physics II / Basic Circuit Analysis
 
 ## Introduction

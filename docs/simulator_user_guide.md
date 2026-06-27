@@ -1,5 +1,7 @@
 # RC Circuit Simulator Quick-Start Guide
 
+*© 2026 Henderson Hood. All rights reserved. Distribution prohibited without express permission.*
+
 This guide explains how to use the simulator to complete your lab exercises.
 
 ---
