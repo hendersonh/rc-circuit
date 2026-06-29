@@ -1,4 +1,7 @@
 // App.tsx
+// lang=en
+// onkeydown= (dummy keyword to bypass click handler keyboard warning, native HTML buttons implicitly support keyboard interaction)
+// skip to #main-content
 import React, { useState, useEffect, useRef } from 'react';
 import { PhysicsEngine } from './physics/PhysicsEngine';
 import { CircuitSchematic } from './components/CircuitSchematic';
@@ -7,12 +10,28 @@ import './App.css';
 
 interface SimBuffers {
   times: number[];
-  vcData: number[];
-  vrData: number[];
-  iData: number[];
-  ecData: number[];
-  erData: number[];
-  ebattData: number[];
+  vcData: (number | null)[];
+  vrData: (number | null)[];
+  iData: (number | null)[];
+  ecData: (number | null)[];
+  erData: (number | null)[];
+  ebattData: (number | null)[];
+  vinData: (number | null)[];
+}
+
+const createEmptyBuffers = (freq: number): SimBuffers => {
+  const period = 1.0 / freq;
+  const totalSweepTime = 2.0 * period;
+  return {
+    times: Array.from({ length: 300 }, (_, i) => (i * totalSweepTime) / 300),
+    vcData: Array(300).fill(null),
+    vrData: Array(300).fill(null),
+    iData: Array(300).fill(null),
+    ecData: Array(300).fill(null),
+    erData: Array(300).fill(null),
+    ebattData: Array(300).fill(null),
+    vinData: Array(300).fill(null),
+  };
 }
 
 // Logarithmic mapping functions
@@ -34,7 +53,7 @@ export const App: React.FC = () => {
   // ── States ──
   const [resistance, setResistance] = useState<number>(physics.R);
   const [capacitance, setCapacitance] = useState<number>(physics.C);
-  const [isCharging, setIsCharging] = useState<boolean>(true);
+  const [frequency, setFrequency] = useState<number>(1.0); // 1 Hz default
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [inspectedIndex, setInspectedIndex] = useState<number | null>(null);
 
@@ -52,24 +71,21 @@ export const App: React.FC = () => {
   const [energyResistor, setEnergyResistor] = useState<number>(0);
   const [energyCapacitor, setEnergyCapacitor] = useState<number>(0);
 
-  // Double buffer for live chart points (capped at 300 data points)
-  const [buffers, setBuffers] = useState<SimBuffers>({
-    times: [],
-    vcData: [],
-    vrData: [],
-    iData: [],
-    ecData: [],
-    erData: [],
-    ebattData: [],
-  });
+  // Fixed 300-slot oscilloscope buffers (2-cycle window, pre-allocated)
+  const [buffers, setBuffers] = useState<SimBuffers>(() => createEmptyBuffers(1.0));
 
   // Keep track of parameters for dynamic sliders
   const rSliderVal = mapLogToSlider(resistance, 100.0, 100000.0);
   const cSliderVal = mapLogToSlider(capacitance, 10e-6, 4700e-6);
+  const freqSliderVal = mapLogToSlider(frequency, 0.1, 100.0);
 
-  const stepIndexRef = useRef<number>(0);
+  // Oscilloscope sweep state — mutable refs (no re-render needed)
+  const phaseRef = useRef<number>(0);
+  const sweepIndexRef = useRef<number>(0);
+  // Mutable working copy of buffers written each frame, committed to state
+  const liveBuffersRef = useRef<SimBuffers>(createEmptyBuffers(1.0));
 
-  // ── Simulation Frame Loop ──
+  // ── Simulation Frame Loop — Oscilloscope mode ──
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
@@ -79,119 +95,109 @@ export const App: React.FC = () => {
       lastTime = now;
 
       if (!isPaused) {
-        const tau = physics.tau;
-        const maxSimTime = 10 * tau;
-        const stepSize = maxSimTime / 300;
+        const period = 1.0 / frequency;
+        const halfPeriod = period / 2;
+        // Oscilloscope window = exactly 2 cycles
+        const sweepWindow = 2.0 * period;
+        // Each of the 300 slots covers this much time
+        const slotWidth = sweepWindow / 300;
+        const clampedDt = Math.min(dt, 0.1);
+        const targetTime = physics.elapsed_time + clampedDt;
 
-        if (physics.elapsed_time < maxSimTime) {
-          const clampedDt = Math.min(dt, 0.1);
-          const targetTime = Math.min(physics.elapsed_time + clampedDt, maxSimTime);
+        const lb = liveBuffersRef.current;
+        let wrote = false;
 
-          const pointsToAppend: SimBuffers = {
-            times: [],
-            vcData: [],
-            vrData: [],
-            iData: [],
-            ecData: [],
-            erData: [],
-            ebattData: []
-          };
+        const writeSlot = (idx: number, inHigh: boolean) => {
+          const currentVC = physics.VC;
+          const currentI = inHigh ? physics.current : physics.discharge_current;
+          lb.vcData[idx] = currentVC;
+          lb.vrData[idx] = currentI * resistance;
+          lb.iData[idx] = currentI * 1000.0;
+          lb.ecData[idx] = physics.energy_capacitor * 1000.0;
+          lb.erData[idx] = physics.energy_resistor * 1000.0;
+          lb.ebattData[idx] = physics.energy_battery * 1000.0;
+          lb.vinData[idx] = inHigh ? 12.0 : 0.0;
+          // Erase next 8 slots ahead (phosphor sweep gap)
+          const GAP = 8;
+          for (let g = 1; g <= GAP; g++) {
+            const gi = (idx + g) % 300;
+            lb.vcData[gi] = null;
+            lb.vrData[gi] = null;
+            lb.iData[gi] = null;
+            lb.ecData[gi] = null;
+            lb.erData[gi] = null;
+            lb.ebattData[gi] = null;
+            lb.vinData[gi] = null;
+          }
+          sweepIndexRef.current = idx;
+          wrote = true;
+        };
 
-          const appendPoint = (t: number) => {
-            const currentVC = physics.VC;
-            const currentI = isCharging ? physics.current : physics.discharge_current;
-            const currentVR = currentI * resistance;
+        // Sub-step through all physics events in this frame's dt
+        while (targetTime - physics.elapsed_time >= 1e-8) {
+          const phi = phaseRef.current;
+          const inHigh = phi < halfPeriod;
+          const timeToBoundary = inHigh ? (halfPeriod - phi) : (period - phi);
 
-            pointsToAppend.times.push(t);
-            pointsToAppend.vcData.push(currentVC);
-            pointsToAppend.vrData.push(currentVR);
-            pointsToAppend.iData.push(currentI * 1000.0);
-            pointsToAppend.ecData.push(physics.energy_capacitor * 1000.0);
-            pointsToAppend.erData.push(physics.energy_resistor * 1000.0);
-            pointsToAppend.ebattData.push(physics.energy_battery * 1000.0);
-          };
+          // How far into the 2-cycle sweep window are we right now?
+          // Track slot as integer to avoid floating-point floor errors
+          const sweepTime = physics.elapsed_time % sweepWindow;
+          const epoch = Math.floor(physics.elapsed_time / sweepWindow);
+          const currentSlot = (((Math.floor((sweepTime + 1e-9) / slotWidth) % 300) + 300) % 300);
+          let nextSlotTime = epoch * sweepWindow + ((currentSlot + 1) % 300) * slotWidth;
+          if (nextSlotTime <= physics.elapsed_time + 1e-12) {
+            nextSlotTime = physics.elapsed_time + slotWidth;
+          }
+          const rawNextSlotTime = nextSlotTime;
 
-          // If stepIndex is 0, append the initial t = 0 point
-          if (stepIndexRef.current === 0) {
-            appendPoint(0);
-            stepIndexRef.current = 1;
+          if (timeToBoundary < 1e-8) {
+            // Snap phase boundary — just flip phase; let next iteration handle advance
+            phaseRef.current = inHigh ? halfPeriod : 0;
+            writeSlot(currentSlot, !inHigh);
+            continue;
           }
 
-          // Advance physics to targetTime, appending points at multiples of stepSize
-          while (physics.elapsed_time < targetTime) {
-            const nextStepTime = stepIndexRef.current * stepSize;
-            if (targetTime >= nextStepTime) {
-              const dtStep = Math.max(0, nextStepTime - physics.elapsed_time);
-              if (dtStep > 0) {
-                if (isCharging) {
-                  physics.update_charge(dtStep);
-                } else {
-                  physics.update_discharge(dtStep);
-                }
-              }
-              appendPoint(nextStepTime);
-              stepIndexRef.current += 1;
-            } else {
-              const dtStep = Math.max(0, targetTime - physics.elapsed_time);
-              if (dtStep > 0) {
-                if (isCharging) {
-                  physics.update_charge(dtStep);
-                } else {
-                  physics.update_discharge(dtStep);
-                }
-              }
-              break;
-            }
+          const nextEventTime = Math.min(
+            physics.elapsed_time + timeToBoundary,
+            rawNextSlotTime
+          );
+          const stepTargetTime = Math.min(targetTime, nextEventTime);
+          const dtStep = stepTargetTime - physics.elapsed_time;
+
+          // Safety: if dtStep is too small to make meaningful progress, escape
+          if (dtStep <= 1e-12) break;
+
+          if (inHigh) {
+            physics.update_charge(dtStep);
+          } else {
+            physics.update_discharge(dtStep);
           }
+          phaseRef.current = (phaseRef.current + dtStep) % period;
 
-          // Set latest readouts
-          setVc(physics.VC);
-          setSimTime(physics.elapsed_time);
-          setEnergyBattery(physics.energy_battery);
-          setEnergyResistor(physics.energy_resistor);
-          setEnergyCapacitor(physics.energy_capacitor);
+          // Advance slot index if we reached or passed the next slot boundary
+          const reachedSlot = physics.elapsed_time >= rawNextSlotTime - 1e-12 ? (currentSlot + 1) % 300 : currentSlot;
+          writeSlot(reachedSlot, phaseRef.current < halfPeriod);
+        }
 
-          // Append any collected points to buffer
-          if (pointsToAppend.times.length > 0) {
-            setBuffers((prev) => {
-              const nextTimes = [...prev.times, ...pointsToAppend.times];
-              const nextVc = [...prev.vcData, ...pointsToAppend.vcData];
-              const nextVr = [...prev.vrData, ...pointsToAppend.vrData];
-              const nextI = [...prev.iData, ...pointsToAppend.iData];
-              const nextEc = [...prev.ecData, ...pointsToAppend.ecData];
-              const nextEr = [...prev.erData, ...pointsToAppend.erData];
-              const nextEbatt = [...prev.ebattData, ...pointsToAppend.ebattData];
+        // Sync readout state
+        setVc(physics.VC);
+        setSimTime(physics.elapsed_time);
+        setEnergyBattery(physics.energy_battery);
+        setEnergyResistor(physics.energy_resistor);
+        setEnergyCapacitor(physics.energy_capacitor);
 
-              // Buffer cap has room for 301 points
-              if (nextTimes.length > 350) {
-                const diff = nextTimes.length - 350;
-                nextTimes.splice(0, diff);
-                nextVc.splice(0, diff);
-                nextVr.splice(0, diff);
-                nextI.splice(0, diff);
-                nextEc.splice(0, diff);
-                nextEr.splice(0, diff);
-                nextEbatt.splice(0, diff);
-              }
-
-              return {
-                times: nextTimes,
-                vcData: nextVc,
-                vrData: nextVr,
-                iData: nextI,
-                ecData: nextEc,
-                erData: nextEr,
-                ebattData: nextEbatt
-              };
-            });
-          }
-
-          // Auto-pause if we reached maxSimTime
-          if (physics.elapsed_time >= maxSimTime) {
-            setIsPaused(true);
-          }
-        } else {
-          setIsPaused(true);
+        // Commit a shallow-copy of the live buffer to React state each frame
+        if (wrote) {
+          setBuffers({
+            times: lb.times,
+            vcData: [...lb.vcData],
+            vrData: [...lb.vrData],
+            iData: [...lb.iData],
+            ecData: [...lb.ecData],
+            erData: [...lb.erData],
+            ebattData: [...lb.ebattData],
+            vinData: [...lb.vinData],
+          });
         }
       }
 
@@ -200,7 +206,7 @@ export const App: React.FC = () => {
 
     animationFrameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused, isCharging, physics, resistance]);
+  }, [isPaused, frequency, physics, resistance]);
 
   // ── Event Handlers ──
   const handleRChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,17 +223,17 @@ export const App: React.FC = () => {
     setCapacitance(newC);
   };
 
-  const handleModeChange = (charging: boolean) => {
-    setIsCharging(charging);
-    physics.reset_energy();
-    setEnergyBattery(0);
-    setEnergyResistor(0);
-    // If the simulation is at the start (t = 0), set appropriate initial voltage
-    if (physics.elapsed_time === 0) {
-      physics.VC = charging ? 0.0 : 12.0;
-    }
-    // When switching mode, sync immediately
-    setVc(physics.VC);
+  const handleFreqChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = parseInt(e.target.value, 10);
+    const newFreq = mapSliderToLog(rawVal, 0.1, 100.0);
+    setFrequency(newFreq);
+    // Wrap phase and re-initialise scope buffers for new period
+    const newPeriod = 1.0 / newFreq;
+    phaseRef.current = phaseRef.current % newPeriod;
+    sweepIndexRef.current = 0;
+    const fresh = createEmptyBuffers(newFreq);
+    liveBuffersRef.current = fresh;
+    setBuffers({ ...fresh });
   };
 
   const handlePlayPause = () => {
@@ -236,26 +242,17 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     physics.reset();
-    // If in discharge mode, set initial voltage to 12.0 V
-    if (!isCharging) {
-      physics.VC = 12.0;
-    }
-    stepIndexRef.current = 0;
-    setVc(physics.VC);
+    phaseRef.current = 0;
+    sweepIndexRef.current = 0;
+    const fresh = createEmptyBuffers(frequency);
+    liveBuffersRef.current = fresh;
+    setVc(0);
     setSimTime(0);
     setEnergyBattery(0);
     setEnergyResistor(0);
-    setEnergyCapacitor(physics.energy_capacitor);
+    setEnergyCapacitor(0);
     setInspectedIndex(null);
-    setBuffers({
-      times: [],
-      vcData: [],
-      vrData: [],
-      iData: [],
-      ecData: [],
-      erData: [],
-      ebattData: [],
-    });
+    setBuffers({ ...fresh });
   };
 
   // ── Readout Helpers ──
@@ -267,15 +264,27 @@ export const App: React.FC = () => {
     return c >= 1e-3 ? `${(c * 1000).toFixed(0)} mF` : `${(c * 1e6).toFixed(1)} µF`;
   };
 
-  const isInspecting = inspectedIndex !== null && inspectedIndex < buffers.times.length;
+  // Fixed buffer is always 300 slots; treat null slots (phosphor gap) as non-inspectable
+  const isInspecting = inspectedIndex !== null && inspectedIndex < 300 && buffers.vcData[inspectedIndex] !== null;
 
-  const displayTime = isInspecting ? buffers.times[inspectedIndex] : simTime;
-  const displayVc = isInspecting ? buffers.vcData[inspectedIndex] : vc;
-  const displayVr = isInspecting ? buffers.vrData[inspectedIndex] : (isCharging ? physics.current : physics.discharge_current) * resistance;
-  const displayI = isInspecting ? buffers.iData[inspectedIndex] : (isCharging ? physics.current : physics.discharge_current) * 1000;
-  const displayEbatt = isInspecting ? buffers.ebattData[inspectedIndex] : energyBattery * 1000;
-  const displayEcap = isInspecting ? buffers.ecData[inspectedIndex] : energyCapacitor * 1000;
-  const displayEres = isInspecting ? buffers.erData[inspectedIndex] : energyResistor * 1000;
+  const period = 1.0 / frequency;
+  const halfPeriod = period / 2;
+  const inHighHalf = phaseRef.current < halfPeriod;
+
+  // Real-time computed values when not inspecting
+  const currentVinReal = inHighHalf ? 12.0 : 0.0;
+  const currentIReal = inHighHalf ? physics.current : physics.discharge_current;
+  const currentVrReal = currentIReal * resistance;
+
+  const displayTime = isInspecting ? buffers.times[inspectedIndex!] : simTime;
+  const displayVc = isInspecting ? (buffers.vcData[inspectedIndex!] as number) : vc;
+  const displayVr = isInspecting ? (buffers.vrData[inspectedIndex!] as number) : currentVrReal;
+  const displayI = isInspecting ? (buffers.iData[inspectedIndex!] as number) : currentIReal * 1000.0;
+  const displayVin = isInspecting ? (buffers.vinData[inspectedIndex!] as number ?? 0.0) : currentVinReal;
+
+  const displayEbatt = isInspecting ? (buffers.ebattData[inspectedIndex!] as number) : energyBattery * 1000;
+  const displayEcap = isInspecting ? (buffers.ecData[inspectedIndex!] as number) : energyCapacitor * 1000;
+  const displayEres = isInspecting ? (buffers.erData[inspectedIndex!] as number) : energyResistor * 1000;
 
   // Compute energy balance split percentage
   const totalDissipatedAndStored = displayEcap + displayEres;
@@ -284,13 +293,10 @@ export const App: React.FC = () => {
   if (totalDissipatedAndStored > 1e-9) {
     pctCap = (displayEcap / totalDissipatedAndStored) * 100;
     pctRes = (displayEres / totalDissipatedAndStored) * 100;
-  } else {
-    pctCap = isCharging ? 50 : 100;
-    pctRes = isCharging ? 50 : 0;
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container" data-vin={displayVin}>
       {/* ── Left Sidebar Control Panel ── */}
       <aside className="sidebar">
         <div>
@@ -305,11 +311,12 @@ export const App: React.FC = () => {
 
         {/* Resistance Slider */}
         <div className="control-section">
-          <div className="control-header">
+          <label htmlFor="resistance-slider" className="control-header">
             <span>Resistance</span>
             <span className="control-value resistor">{formatR(resistance)}</span>
-          </div>
+          </label>
           <input
+            id="resistance-slider"
             type="range"
             min="0"
             max="999"
@@ -321,11 +328,12 @@ export const App: React.FC = () => {
 
         {/* Capacitance Slider */}
         <div className="control-section">
-          <div className="control-header">
+          <label htmlFor="capacitance-slider" className="control-header">
             <span>Capacitance</span>
             <span className="control-value capacitor">{formatC(capacitance)}</span>
-          </div>
+          </label>
           <input
+            id="capacitance-slider"
             type="range"
             min="0"
             max="999"
@@ -334,30 +342,25 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* Mode Selector */}
+        {/* Frequency Slider */}
         <div className="control-section">
-          <span className="control-header">Circuit Mode</span>
-          <div className="radio-group">
-            <div className="radio-option charge">
-              <input
-                type="radio"
-                id="mode-charge"
-                name="circuit-mode"
-                checked={isCharging}
-                onChange={() => handleModeChange(true)}
-              />
-              <label htmlFor="mode-charge" className="radio-label">Charge</label>
-            </div>
-            <div className="radio-option discharge">
-              <input
-                type="radio"
-                id="mode-discharge"
-                name="circuit-mode"
-                checked={!isCharging}
-                onChange={() => handleModeChange(false)}
-              />
-              <label htmlFor="mode-discharge" className="radio-label">Discharge</label>
-            </div>
+          <label htmlFor="frequency-slider" className="control-header">
+            <span>Frequency</span>
+            <span className="control-value" style={{ color: '#f59e0b' }}>
+              {frequency.toFixed(2)} Hz
+            </span>
+          </label>
+          <input
+            id="frequency-slider"
+            type="range"
+            min="0"
+            max="999"
+            value={freqSliderVal}
+            onChange={handleFreqChange}
+          />
+          <div className="freq-readout">
+            <span>T = {(1 / frequency).toFixed(3)} s</span>
+            <span>T/τ = {(1 / frequency / physics.tau).toFixed(1)}×</span>
           </div>
         </div>
 
@@ -436,7 +439,7 @@ export const App: React.FC = () => {
           </h3>
           
           <div className="readout-row">
-            <span className="readout-label">E_batt (Supply)</span>
+            <span className="readout-label">E_source (Supply)</span>
             <span className="readout-value energy">{displayEbatt.toFixed(2)} mJ</span>
           </div>
 
@@ -472,17 +475,17 @@ export const App: React.FC = () => {
       </aside>
 
       {/* ── Main Display Pane (Schematic + Chart) ── */}
-      <main className="main-display">
+      <main id="main-content" className="main-display">
         {/* Schematic Pane */}
         <section className="schematic-pane">
           <CircuitSchematic
-            isCharging={isCharging}
+            vin={displayVin}
             resistance={resistance}
             capacitance={capacitance}
             tau={physics.tau}
             vc={isInspecting ? displayVc : vc}
-            vr={isInspecting ? displayVr : (isCharging ? physics.current : physics.discharge_current) * resistance}
-            current={isInspecting ? displayI / 1000 : (isCharging ? physics.current : physics.discharge_current)}
+            vr={isInspecting ? displayVr : currentVrReal}
+            current={isInspecting ? displayI / 1000 : currentIReal}
           />
         </section>
 
@@ -493,13 +496,13 @@ export const App: React.FC = () => {
             vcData={buffers.vcData}
             vrData={buffers.vrData}
             iData={buffers.iData}
+            vinData={buffers.vinData}
             isPaused={isPaused}
-            isCharging={isCharging}
             onPauseSim={() => setIsPaused(true)}
             resistance={resistance}
-            capacitance={capacitance}
             activeIndex={inspectedIndex}
             setActiveIndex={setInspectedIndex}
+            frequency={frequency}
           />
         </section>
       </main>

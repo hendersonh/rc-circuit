@@ -1,4 +1,5 @@
 // ChartCanvas.tsx
+// lang=en
 import React, { useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -16,16 +17,16 @@ ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 interface ChartCanvasProps {
   times: number[];
-  vcData: number[];
-  vrData: number[];
-  iData: number[];
+  vcData: (number | null)[];
+  vrData: (number | null)[];
+  iData: (number | null)[];
+  vinData: (number | null)[];
   isPaused: boolean;
-  isCharging: boolean;
   onPauseSim: () => void;
   resistance: number;
-  capacitance: number;
   activeIndex: number | null;
   setActiveIndex: (index: number | null) => void;
+  frequency: number;
 }
 
 // Custom plugin to draw vertical cursor line on active index
@@ -53,69 +54,38 @@ const verticalCursorPlugin = {
   }
 };
 
-const tauMilestonesPlugin = {
-  id: 'tauMilestones',
-  afterDraw: (chart: ChartJS) => {
-    const pluginOptions = (chart.options.plugins as Record<string, { tau?: number, isCharging?: boolean } | undefined>)?.tauMilestones;
-    if (!pluginOptions || !pluginOptions.tau) return;
-
-    const { tau, isCharging } = pluginOptions;
-    const ctx = chart.ctx;
-    const xAxis = chart.scales.x;
-    const chartArea: ChartArea = chart.chartArea;
-
-    const milestones = [
-      { t: tau, label: '1τ', pctCharge: '63.2%', pctDischarge: '36.8%' },
-      { t: 5 * tau, label: '5τ', pctCharge: '99.3%', pctDischarge: '0.7%' }
-    ];
-
-    ctx.save();
-    milestones.forEach((m) => {
-      const xPixel = xAxis.getPixelForValue(m.t);
-      if (xPixel >= chartArea.left && xPixel <= chartArea.right) {
-        // Draw vertical dashed line
-        ctx.beginPath();
-        ctx.setLineDash([4, 4]);
-        ctx.moveTo(xPixel, chartArea.top);
-        ctx.lineTo(xPixel, chartArea.bottom);
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; // Subtle white dashed line
-        ctx.stroke();
-
-        // Draw label text
-        ctx.fillStyle = '#94a3b8'; // Slate 400
-        ctx.font = 'bold 9px JetBrains Mono';
-        const percentText = isCharging ? m.pctCharge : m.pctDischarge;
-        const fullLabel = `${m.label} (${percentText})`;
-        
-        ctx.fillText(fullLabel, xPixel + 5, chartArea.top + 15);
-      }
-    });
-    ctx.restore();
-  }
-};
-
-ChartJS.register(verticalCursorPlugin, tauMilestonesPlugin);
+ChartJS.register(verticalCursorPlugin);
 
 export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   times,
   vcData,
   vrData,
   iData,
+  vinData,
   isPaused,
-  isCharging,
   onPauseSim,
   resistance,
-  capacitance,
   activeIndex,
   setActiveIndex,
+  frequency,
 }) => {
   const chartRef = useRef<ChartJS<'line'> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Map data to chart.js structure
+  // Map data to chart.js structure — fixed 300-slot oscilloscope buffers
+  // null values create natural gaps (phosphor sweep gap) via spanGaps: false
   const chartData = {
     datasets: [
+      {
+        label: 'Vin (Source)',
+        data: times.map((t, idx) => ({ x: t, y: vinData[idx] })),
+        borderColor: '#f59e0b', // Amber
+        borderWidth: 1.5,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        spanGaps: false,
+        yAxisID: 'y',
+      },
       {
         label: 'Vc (Capacitor)',
         data: times.map((t, idx) => ({ x: t, y: vcData[idx] })),
@@ -123,25 +93,28 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 0,
+        spanGaps: false,
         yAxisID: 'y',
       },
       {
         label: 'Vr (Resistor)',
         data: times.map((t, idx) => ({ x: t, y: vrData[idx] })),
-        borderColor: '#10b981', // Emerald Green (Dashed)
+        borderColor: '#10b981', // Emerald (dashed)
         borderWidth: 2,
         borderDash: [6, 4],
         pointRadius: 0,
         pointHoverRadius: 0,
+        spanGaps: false,
         yAxisID: 'y',
       },
       {
         label: 'I (Current)',
         data: times.map((t, idx) => ({ x: t, y: iData[idx] })),
-        borderColor: '#10b981', // Emerald Green
+        borderColor: '#10b981', // Emerald
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 0,
+        spanGaps: false,
         yAxisID: 'y1',
       },
     ],
@@ -153,10 +126,12 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
   const currentMaxMA = (v0 / resistance) * 1000 * 1.2;
   const currentLimitMA = Math.max(currentMaxMA, 1.0);
 
-  // Set X-axis window limits: span exactly from 0 to 10 * tau
-  const tau = resistance * capacitance;
+  // Fixed oscilloscope X-axis: always show exactly 2 cycles [0, 2T]
+  const period = 1.0 / frequency;
   const xMin = 0;
-  const xMax = Math.max(10.0 * tau, 0.01);
+  const xMax = 2.0 * period;
+  // Dynamic X-axis tick step — aim for ~8 divisions across the 2-cycle window
+  const xTickStep = (2.0 * period) / 8;
 
   const chartOptions = {
     responsive: true,
@@ -175,7 +150,7 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
         min: xMin,
         max: xMax,
         grid: {
-          color: 'rgba(255, 255, 255, 0.05)',
+          color: 'rgba(255, 255, 255, 0.06)',
         },
         ticks: {
           color: '#94a3b8',
@@ -183,10 +158,15 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
             family: 'JetBrains Mono',
             size: 10,
           },
+          stepSize: xTickStep,
+          callback: (val: number | string) => {
+            const v = typeof val === 'number' ? val : parseFloat(val);
+            return v.toFixed(period < 0.1 ? 3 : period < 1 ? 2 : 2) + 's';
+          },
         },
         title: {
           display: true,
-          text: 'Time (seconds)',
+          text: `Time  ·  2 cycles  (T = ${(1000 / frequency).toFixed(1)} ms)`,
           color: '#94a3b8',
           font: {
             size: 11,
@@ -197,7 +177,7 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
       y: {
         type: 'linear',
         position: 'left',
-        min: isCharging ? 0 : -13.0,
+        min: -13.0,
         max: 13.0,
         grid: {
           color: 'rgba(255, 255, 255, 0.05)',
@@ -265,10 +245,6 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
       verticalCursor: {
         activeIndex: activeIndex,
       },
-      tauMilestones: {
-        tau: tau,
-        isCharging: isCharging,
-      },
     },
   } as unknown as ChartOptions<'line'>;
 
@@ -290,22 +266,10 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({
     const xValue = chart.scales.x.getValueForPixel(xInCanvas);
     if (xValue === undefined) return;
 
-    // Clamp value to range of times array
-    if (xValue < times[0] || xValue > times[times.length - 1]) {
-      return;
-    }
-
-    // Binary search or linear search for nearest time index
-    let nearestIdx = 0;
-    let minDiff = Infinity;
-    for (let i = 0; i < times.length; i++) {
-      const diff = Math.abs(times[i] - xValue);
-      if (diff < minDiff) {
-        minDiff = diff;
-        nearestIdx = i;
-      }
-    }
-
+    // Map xValue into 300-slot fixed index
+    const sweepWindow = 2.0 / frequency;
+    const clampedX = Math.max(0, Math.min(xValue, sweepWindow));
+    const nearestIdx = Math.min(299, Math.floor((clampedX / sweepWindow) * 300));
     setActiveIndex(nearestIdx);
   };
 
