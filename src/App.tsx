@@ -117,18 +117,6 @@ export const App: React.FC = () => {
           lb.erData[idx] = physics.energy_resistor * 1000.0;
           lb.ebattData[idx] = physics.energy_battery * 1000.0;
           lb.vinData[idx] = inHigh ? 12.0 : 0.0;
-          // Erase next 8 slots ahead (phosphor sweep gap)
-          const GAP = 8;
-          for (let g = 1; g <= GAP; g++) {
-            const gi = (idx + g) % 300;
-            lb.vcData[gi] = null;
-            lb.vrData[gi] = null;
-            lb.iData[gi] = null;
-            lb.ecData[gi] = null;
-            lb.erData[gi] = null;
-            lb.ebattData[gi] = null;
-            lb.vinData[gi] = null;
-          }
           sweepIndexRef.current = idx;
           wrote = true;
         };
